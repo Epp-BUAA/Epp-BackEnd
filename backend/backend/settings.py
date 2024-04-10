@@ -62,6 +62,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                'django.template.context_processors.media',
             ],
         },
     },
@@ -77,7 +78,7 @@ DATABASES = {
         #  'ENGINE': 'django.db.backends.sqlite3',
         #  'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'db21373307',
+        'NAME': '2024_EPP',
         'USER': 'root',
         'PASSWORD': 'RuanGong-0601-G5',
         'HOST': '114.116.214.56',
@@ -116,7 +117,9 @@ USE_TZ = False
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
-STATIC_URL = "static/"
+STATIC_URL = 'static/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'resource')
+MEDIA_URL = '/resource/'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
