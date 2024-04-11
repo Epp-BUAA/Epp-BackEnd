@@ -10,6 +10,7 @@ def login(request):
         password = data.get('password')
         user = User.objects.filter(username=username, password=password).first()
         if user:
+            print(user.avatar.url)
             request.session['username'] = user.username
             return JsonResponse({'user_id': user.user_id, 'username': user.username, 'avatar': user.avatar.url})
         else:

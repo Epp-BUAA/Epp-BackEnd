@@ -16,13 +16,16 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
+from django.conf import settings
+from django.conf.urls.static import static
+
 from business.api.auth import login, signup, testLogin, logout, userInfo
 
 urlpatterns = [
-    path("admin/", admin.site.urls),
-    path("api/login", login),
-    path("api/signup", signup),
-    path("api/testLogin", testLogin),
-    path("api/logout", logout),
-    path("api/userInfo", userInfo),
-]
+                  path("admin/", admin.site.urls),
+                  path("api/login", login),
+                  path("api/signup", signup),
+                  path("api/testLogin", testLogin),
+                  path("api/logout", logout),
+                  path("api/userInfo", userInfo),
+              ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
