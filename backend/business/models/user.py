@@ -23,8 +23,8 @@ class User(models.Model):
     username = models.CharField(max_length=255)  # 修正最大长度
     password = models.CharField(max_length=255)  # 修正最大长度
     avatar = models.ImageField(
-        upload_to=f'resource/uploads/users/avatars/',
-        default='resource/uploads/users/avatars/default.jpg',
+        upload_to=f'uploads/users/avatars/',
+        default='uploads/users/avatars/default.jpg',
         storage=storage.ImageStorage(), null=True
     )
     registration_date = models.DateTimeField(auto_now_add=True)  # 自动设置为当前时间
