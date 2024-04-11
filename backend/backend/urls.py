@@ -18,6 +18,8 @@ from django.contrib import admin
 from django.urls import path
 from business.api.auth import login, signup, testLogin, logout, userInfo
 from business.api.userInteraction import like_paper, score_paper, collect_paper
+from django.conf import settings
+from django.conf.urls.static import static
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -29,4 +31,4 @@ urlpatterns = [
     path("api/likePaper", like_paper),
     path("api/scorePaper", score_paper),
     path("api/collectPaper", collect_paper),
-]
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
