@@ -33,14 +33,3 @@ class User(models.Model):
 
     def __str__(self):
         return self.username
-
-    @staticmethod
-    def generate_user_id():
-        """
-        生成自增的用户 ID
-        """
-        last_user = User.objects.last()
-        if last_user is None:
-            return 1
-        else:
-            return last_user.user_id + 1

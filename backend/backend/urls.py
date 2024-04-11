@@ -17,6 +17,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 from business.api.auth import login, signup, testLogin, logout, userInfo
+from business.api.userInteraction import like_paper, score_paper, collect_paper
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -25,4 +26,7 @@ urlpatterns = [
     path("api/testLogin", testLogin),
     path("api/logout", logout),
     path("api/userInfo", userInfo),
+    path("api/likePaper", like_paper),
+    path("api/scorePaper", score_paper),
+    path("api/collectPaper", collect_paper),
 ]

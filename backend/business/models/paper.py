@@ -24,6 +24,7 @@ class Paper(models.Model):
         - comment_count    评论次数
         - download_count   下载次数
         - score            评分
+        - score_count      评分次数
         - local_path       本地地址
     """
     paper_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False, unique=True)
@@ -40,6 +41,7 @@ class Paper(models.Model):
     comment_count = models.IntegerField(default=0)
     download_count = models.IntegerField(default=0)
     score = models.FloatField(default=0.0)
+    score_count = models.IntegerField(default=0)
     local_path = models.CharField(max_length=255)  # 本地地址，允许为空
 
     def __str__(self):

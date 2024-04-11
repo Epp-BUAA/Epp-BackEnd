@@ -2,6 +2,11 @@ from business.models.user import User
 from django.http import JsonResponse
 import json
 
+"""
+    用户认证模块
+    登录、注册、登出、用户信息
+"""
+
 
 def login(request):
     if request.method == 'POST':
