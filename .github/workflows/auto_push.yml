@@ -24,5 +24,6 @@ jobs:
       - name: Deploy
         run: |
           ssh-keyscan -H 114.116.214.56 >> ~/.ssh/known_hosts
+          git fetch --unshallow origin
           git remote add huawei git@114.116.214.56:/home/git/EPP/Epp_BackEnd
           git push -u  huawei master
