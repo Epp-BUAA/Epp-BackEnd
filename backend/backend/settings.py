@@ -150,3 +150,10 @@ CORS_ALLOW_HEADERS = (
     'x-requested-with',
     'Pragma',
 )
+
+USER_AVATARS_PATH = 'resource/uploads/users/avatars'  # 用户头像相对路径
+USER_DOCUMENTS_PATH = 'resource/uploads/users/documents'  # 用户上传文件路径
+USER_REPORTS_PATH = 'resource/database/users/reports'  # 用户生成报告路径
+USER_SEARCH_CONSERVATION_PATH = 'resource/database/users/conversation/search'  # 调研助手对话文件路径
+USER_READ_CONSERVATION_PATH = 'resource/database/users/conversation/search'  # 论文研读助手对话文件路径
+PAPERS_PATH = 'resource/database/papers'  # 数据库论文路径
