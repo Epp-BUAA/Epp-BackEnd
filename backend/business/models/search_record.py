@@ -20,4 +20,4 @@ class SearchRecord(models.Model):
     user_id = models.ForeignKey(User, on_delete=models.CASCADE)
     keyword = models.CharField(max_length=255)
     date = models.DateTimeField(auto_now_add=True)
-    conversation_path = models.CharField(max_length=255, unique=True)
+    conversation_path = models.CharField(max_length=255, null=True)
