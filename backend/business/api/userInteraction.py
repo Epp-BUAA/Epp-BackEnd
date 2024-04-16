@@ -23,7 +23,7 @@ def like_paper(request):
             paper.like_count -= 1
             user.save()
             paper.save()
-            return JsonResponse({'message': '取消点赞成功'})
+            return JsonResponse({'message': '成功取消点赞'})
         # 点赞
         if user and paper:
             user.liked_papers.add(paper)
