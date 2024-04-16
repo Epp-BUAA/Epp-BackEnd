@@ -120,5 +120,11 @@ def summary_report(request):
         return reply.fail(msg="请先正确登录")
 
     summary_reports = SummaryReport.objects.filter(user_id=user)
-    data = {'total': len(search_records), 'keywords': []}
-
+    data = {'total': len(summary_reports), 'reports': []}
+    for report in summary_reports:
+        data['reports'].append({
+            "title": report.title,
+            "path": report.report_path,
+            "date": report.date.strftime("%Y-%m-%d %H:%M:%S")
+        })
+    return reply.success(data=data, msg='综述报告列表获取成功')
