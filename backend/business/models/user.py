@@ -20,8 +20,8 @@ class User(models.Model):
         - liked_papers        点赞的文献
     """
     user_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False, unique=True)
-    username = models.CharField(max_length=255)  # 修正最大长度
-    password = models.CharField(max_length=255)  # 修正最大长度
+    username = models.CharField(max_length=255)
+    password = models.CharField(max_length=255)
     avatar = models.ImageField(
         upload_to=f'uploads/users/avatars/',
         default='uploads/users/avatars/default.jpg',

@@ -17,7 +17,7 @@ class FileReading(models.Model):
     user_id = models.ForeignKey(User, on_delete=models.CASCADE)
     file_local_path = models.CharField(max_length=255)
     title = models.CharField(max_length=255)
-    conversation_path = models.CharField(max_length=255, unique=True)
+    conversation_path = models.CharField(max_length=255, null=True)
 
     class Meta:
         unique_together = [['user_id', 'file_local_path']]
