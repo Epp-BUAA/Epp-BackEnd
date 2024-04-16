@@ -59,7 +59,6 @@ CORS_ALLOW_METHODS = (
     "POST",
     "PUT",
 )
-
 CORS_ALLOW_HEADERS = (
     'XMLHttpRequest',
     'X_FILENAME',
