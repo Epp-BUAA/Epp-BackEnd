@@ -23,7 +23,7 @@ def user_info(request):
                                    'username': user.username,
                                    'avatar': user.avatar.url,
                                    'registration_date': user.registration_date.strftime("%Y-%m-%d %H:%M:%S"),
-                                   'collected_papers_cnt': user.collected_papers.all().count(),
+                                   'collected_papers_cnt': user.collected_papers_list.all().count(),
                                    'liked_papers_cnt': user.liked_papers.all().count()},
                              msg='个人信息获取成功')
     else:
@@ -44,7 +44,7 @@ def modify_avatar(request):
 
 
 @require_http_methods('GET')
-def collected_papers(request):
+def collected_papers_list(request):
     """ 收藏文献列表 """
     username = request.session.get('username')
     user = User.objects.filter(username=username).first()
@@ -52,7 +52,7 @@ def collected_papers(request):
         return reply.fail(msg="请先正确登录")
     data = {'total': 0, 'papers': []}
     papers_cnt = 0
-    for paper in user.collected_papers.all():
+    for paper in user.collected_papers_list.all():
         papers_cnt += 1
         data['papers'].append({
             "paper_id": paper.paper_id,
@@ -73,7 +73,7 @@ def collected_papers(request):
 
 
 @require_http_methods('GET')
-def search_history(request):
+def search_history_list(request):
     """ 搜索历史列表 """
     username = request.session.get('username')
     user = User.objects.filter(username=username).first()

@@ -25,6 +25,7 @@ from business.api import user_info
 
 urlpatterns = [
                   path("admin/", admin.site.urls),
+
                   path("api/login", login),
                   path("api/signup", signup),
                   path("api/testLogin", testLogin),
@@ -36,8 +37,11 @@ urlpatterns = [
                   # 个人信息模块
                   path("api/userInfo/userInfo", user_info.user_info),
                   path("api/userInfo/avatar", user_info.modify_avatar),
-                  path("api/userInfo/collectedPapers", user_info.collected_papers),
-                  path("api/userInfo/searchHistory", user_info.search_history),
+                  path("api/userInfo/collectedPapers", user_info.collected_papers_list),
+                  path("api/userInfo/searchHistory", user_info.search_history_list),
                   path("api/userInfo/delSearchHistory", user_info.delete_search_history),
+                  path("api/userInfo/documents", user_info.document_list),
+
+                  # 数据管理模块
 
               ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
