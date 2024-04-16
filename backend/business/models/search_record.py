@@ -19,5 +19,5 @@ class SearchRecord(models.Model):
     search_record_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False, unique=True)
     user_id = models.ForeignKey(User, on_delete=models.CASCADE)
     keyword = models.CharField(max_length=255)
-    date = models.DateTimeField(auto_now_add=True)
+    date = models.DateTimeField(auto_now=True)
     conversation_path = models.CharField(max_length=255, null=True)
