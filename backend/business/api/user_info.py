@@ -4,7 +4,7 @@ api/userInfo/...
 """
 from django.views.decorators.http import require_http_methods
 from django.http import QueryDict
-import json
+from datetime import datetime
 
 from business.models import User
 from business.models import SearchRecord
@@ -20,7 +20,7 @@ def user_info(request):
         return reply.success(data={'user_id': user.user_id,
                                    'username': user.username,
                                    'avatar': user.avatar.url,
-                                   'registration_date': user.registration_date,
+                                   'registration_date': user.registration_date.strftime("%Y-%m-%d %H:%M:%S"),
                                    'collected_papers_cnt': user.collected_papers.all().count(),
                                    'liked_papers_cnt': user.liked_papers.all().count()},
                              msg='个人信息获取成功')
@@ -57,7 +57,7 @@ def collected_papers(request):
             "title": paper.title,
             "authors": paper.authors.split(','),
             "abstract": paper.abstract,
-            "publication_date": paper.publication_date,
+            "publication_date": paper.publication_date.strftime("%Y-%m-%d"),
             "journal": paper.journal,
             "citation_count": paper.citation_count,
             "read_count": paper.read_count,
@@ -75,7 +75,6 @@ def search_history(request):
     """ 搜索历史列表 """
     username = request.session.get('username')
     user = User.objects.filter(username=username).first()
-    SearchRecord(user_id=user, keyword="mamba out")
     if not user:
         return reply.fail(msg="请先正确登录")
 
@@ -85,7 +84,7 @@ def search_history(request):
         data['keywords'].append({
             "search_record_id": item.search_record_id,
             "keyword": item.keyword,
-            "date": item.date
+            "date": item.date.strftime("%Y-%m-%d %H:%M:%S")
         })
     return reply.success(data=data, msg='搜索历史记录获取成功')
 
