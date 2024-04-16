@@ -2,6 +2,7 @@ asgiref==3.8.1
 Django==4.2.11
 django-cors-headers==4.3.1
 mysqlclient==2.2.4
+pillow==10.3.0
 PyMySQL==1.1.0
 sqlparse==0.4.4
 typing_extensions==4.11.0
