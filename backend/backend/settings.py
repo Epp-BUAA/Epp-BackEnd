@@ -143,8 +143,8 @@ USE_TZ = False
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
 STATIC_URL = 'static/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'resource')
 MEDIA_URL = '/resource/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'resource')
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field

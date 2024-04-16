@@ -1,13 +1,14 @@
 """
-用户信息模块API
-api/userInfo/...
+    用户信息模块API
+    api/userInfo/...
 """
+import json
+
 from django.views.decorators.http import require_http_methods
-from django.http import QueryDict
-from datetime import datetime
 
 from business.models import User
 from business.models import SearchRecord
+from business.models import SummaryReport
 from business.utils import reply
 
 
@@ -77,7 +78,7 @@ def search_history(request):
     user = User.objects.filter(username=username).first()
     if not user:
         return reply.fail(msg="请先正确登录")
-
+    SearchRecord(user_id=user, keyword="man~").save()
     search_records = SearchRecord.objects.filter(user_id=user).order_by('-date')
     data = {'total': len(search_records), 'keywords': []}
     for item in search_records:
@@ -96,8 +97,9 @@ def delete_search_history(request):
     user = User.objects.filter(username=username).first()
     if not user:
         return reply.fail(msg="请先正确登录")
-    params = QueryDict(request.body)
-    search_record_id = params.get("search_record_id", default=None)
+    params: dict = json.loads(request.body)
+    search_record_id = params.get("search_record_id", None)
+    print(search_record_id)
     if search_record_id:
         record = SearchRecord.objects.filter(search_record_id=search_record_id).first()
         if record:
@@ -107,3 +109,16 @@ def delete_search_history(request):
     else:
         SearchRecord.objects.filter(user_id=user).delete()
     return reply.success(msg="记录已删除")
+
+
+@require_http_methods('GET')
+def summary_report(request):
+    """ 查看用户生成的综述报告列表 """
+    username = request.session.get('username')
+    user = User.objects.filter(username=username).first()
+    if not user:
+        return reply.fail(msg="请先正确登录")
+
+    summary_reports = SummaryReport.objects.filter(user_id=user)
+    data = {'total': len(search_records), 'keywords': []}
+
