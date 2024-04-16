@@ -9,6 +9,7 @@ from django.views.decorators.http import require_http_methods
 from business.models import User
 from business.models import SearchRecord
 from business.models import SummaryReport
+from business.models import UserDocument
 from business.utils import reply
 
 
@@ -128,3 +129,24 @@ def summary_report(request):
             "date": report.date.strftime("%Y-%m-%d %H:%M:%S")
         })
     return reply.success(data=data, msg='综述报告列表获取成功')
+
+
+@require_http_methods('GET')
+def document_list(request):
+    """ 用户上传文件列表 """
+    username = request.session.get('username')
+    user = User.objects.filter(username=username).first()
+    if not user:
+        return reply.fail(msg="请先正确登录")
+
+    documents = UserDocument.objects.filter(user_id=user).order_by('-upload_date')
+    data = {'total': len(documents), 'documents': []}
+    for document in documents:
+        data['documents'].append({
+            "document_id": document.document_id,
+            "title": document.title,
+            "format": document.format,
+            "size": document.size,
+            "date": document.date.strftime("%Y-%m-%d %H:%M:%S")
+        })
+    return reply.success(data=data, msg='文件列表获取成功')
