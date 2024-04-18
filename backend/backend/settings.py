@@ -76,6 +76,8 @@ CORS_ALLOW_HEADERS = (
 
 ROOT_URLCONF = "backend.urls"
 
+RESOURCE_PATH = BASE_DIR + '/resource'
+
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
