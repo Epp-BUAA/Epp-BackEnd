@@ -3,7 +3,7 @@
 """
 import json
 from django.http import JsonResponse
-from business.models import User, Paper, PaperScore
+from business.models import User, Paper, PaperScore, CommentReport, FirstLevelComment, SecondLevelComment
 
 
 def like_paper(request):
@@ -94,6 +94,71 @@ def collect_paper(request):
             user.save()
             paper.save()
             return JsonResponse({'message': '收藏成功', 'is_success': True})
+        else:
+            return JsonResponse({'error': '用户或文献不存在', 'is_success': False}, status=400)
+    else:
+        return JsonResponse({'error': '请求方法错误', 'is_success': False}, status=400)
+
+
+def report_comment(request):
+    """
+    举报评论
+    """
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        username = request.session.get('username')
+        comment_id = data.get('comment_id')
+        comment_level = data.get('comment_level')
+        report = data.get('report')
+        user = User.objects.filter(username=username).first()
+        # 这里需要知道是一级评论还是二级评论
+        comment = None
+        if comment_level == 1:
+            comment = FirstLevelComment.objects.filter(comment_id=comment_id).first()
+        elif comment_level == 2:
+            comment = SecondLevelComment.objects.filter(comment_id=comment_id).first()
+        if user and comment:
+            if comment_level == 1:
+                report_com = CommentReport(comment_id_1=comment, user_id=user, content=report)
+                report_com.save()
+            elif comment_level == 2:
+                report_com = CommentReport(comment_id_2=comment, user_id=user, content=report)
+                report_com.save()
+            return JsonResponse({'message': '举报成功', 'is_success': True})
+        else:
+            return JsonResponse({'error': '用户或评论不存在', 'is_success': False}, status=400)
+    else:
+        return JsonResponse({'error': '请求方法错误', 'is_success': False}, status=400)
+
+
+def comment_paper(request):
+    """
+    用户评论（含一级、二级评论）
+    """
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        username = request.session.get('username')
+        paper_id = data.get('paper_id')
+        comment_level = data.get('comment_level')  # 1 / 2
+        text = data.get('comment')
+        user = User.objects.filter(username=username).first()
+        paper = Paper.objects.filter(paper_id=paper_id).first()
+        if user and paper:
+            if comment_level == 1:
+                comment = FirstLevelComment(user_id=user, paper_id=paper, text=text)
+                comment.save()
+            elif comment_level == 2:
+                level1_comment_id = data.get('level1_comment_id')
+                level1_comment = FirstLevelComment.objects.filter(comment_id=level1_comment_id).first()
+                # 如果是回复二级评论的评论，获取其回复的二级评论的id
+                reply_comment_id = data.get('reply_comment_id')
+                reply_comment = None
+                if reply_comment_id:
+                    reply_comment = SecondLevelComment.objects.filter(comment_id=reply_comment).first()
+                comment = SecondLevelComment(user_id=user, paper_id=paper, text=text, level1_comment=level1_comment,
+                                             reply_comment=reply_comment)
+                comment.save()
+            return JsonResponse({'message': '评论成功', 'is_success': True})
         else:
             return JsonResponse({'error': '用户或文献不存在', 'is_success': False}, status=400)
     else:

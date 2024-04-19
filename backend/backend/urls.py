@@ -19,30 +19,36 @@ from django.urls import path
 from django.conf import settings
 from django.conf.urls.static import static
 
-from business.api.auth import login, signup, testLogin, logout, userInfo
-from business.api.userInteraction import like_paper, score_paper, collect_paper
+from business.api.auth import login, signup, testLogin, logout, manager_login, manager_logout
+from business.api.userInteraction import like_paper, score_paper, collect_paper, report_comment, comment_paper
 from business.api import user_info
 from business.api.search import vector_query, dialog_query
 
 urlpatterns = [
-                    path("admin/", admin.site.urls),
-                    path("api/login", login),
-                    path("api/signup", signup),
-                    path("api/testLogin", testLogin),
-                    path("api/logout", logout),
-                    path("api/likePaper", like_paper),
-                    path("api/scorePaper", score_paper),
-                    path("api/collectPaper", collect_paper),
+                  path("admin/", admin.site.urls),
+                  # 用户及管理员认证模块
+                  path("api/login", login),
+                  path("api/sign", signup),
+                  path("api/testLogin", testLogin),
+                  path("api/logout", logout),
+                  path("api/managerLogin", manager_login),
+                  path("api/managerLogout", manager_logout),
+                  # 用户交互模块
+                  path("api/userLikePaper", like_paper),
+                  path("api/userScoring", score_paper),
+                  path("api/collectPaper", collect_paper),
+                  path("api/reportComment", report_comment),
+                  path("api/commentPaper", comment_paper),
 
-                    # 个人信息模块
-                    path("api/userInfo/userInfo", user_info.user_info),
-                    path("api/userInfo/avatar", user_info.modify_avatar),
-                    path("api/userInfo/collectedPapers", user_info.collected_papers),
-                    path("api/userInfo/searchHistory", user_info.search_history),
-                    path("api/userInfo/delSearchHistory", user_info.delete_search_history),
-                    
-                    # 信息检索模块
-                    path("api/search/vectorQuery", vector_query),
-                    path("api/search/dialogQuery", dialog_query),
+                  # 个人信息模块
+                  path("api/userInfo/userInfo", user_info.user_info),
+                  path("api/userInfo/avatar", user_info.modify_avatar),
+                  path("api/userInfo/collectedPapers", user_info.collected_papers),
+                  path("api/userInfo/searchHistory", user_info.search_history),
+                  path("api/userInfo/delSearchHistory", user_info.delete_search_history),
+
+                  # 信息检索模块
+                  path("api/search/vectorQuery", vector_query),
+                  path("api/search/dialogQuery", dialog_query),
 
               ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

@@ -5,7 +5,7 @@ from django.db import models
 import uuid
 
 
-class Admin:
+class Admin(models.Model):
     """
     Field:
         - admin_id          管理员ID

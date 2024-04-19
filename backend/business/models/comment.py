@@ -38,7 +38,7 @@ class SecondLevelComment(models.Model):
         - text               评论内容
         - like_count         点赞数
         - level1_comment     一级评论
-        - reply_comment      回复评论
+        - reply_comment      回复评论(针对二级评论的回复才记录）
         - liked_by_users     点赞用户
     """
     comment_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False, unique=True)
