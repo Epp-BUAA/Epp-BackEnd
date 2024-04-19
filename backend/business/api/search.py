@@ -122,14 +122,14 @@ def dialog_query(request):
     if search_record is None:
         # 创建新的聊天记录
         search_record = SearchRecord.objects.create(user_id=user.user_id, keyword=keyword)
-        search_record.conversation_path = settings.RESOURCE_PATH+'/conversions/' + search_record.search_record_id + '.json'
+        search_record.conversation_path = settings.USER_SEARCH_CONSERVATION_PATH + '/' + search_record.search_record_id + '.json'
         search_record.date = datetime.datetime.now()
         search_record.save()
     # 历史记录的json文件名称和search_record_id一致
-    conversions_path = settings.RESOURCE_PATH+'/conversions/' + search_record.search_record_id + '.json'
+    conversation_path = settings.USER_SEARCH_CONSERVATION_PATH + '/' + search_record.search_record_id + '.json'    
     history = []
-    if os.path.exists(conversions_path):
-        c = json.loads(open(conversions_path).read())
+    if os.path.exists(conversation_path):
+        c = json.loads(open(conversation_path).read())
         history = c
     history.append({ 'role' : 'user', 'content' : message })
     # 先判断下是不是要查询论文
@@ -155,7 +155,7 @@ def dialog_query(request):
         papers = []
         content = response
         history.append({ 'role' : 'assistant', 'content' : content })
-    with open(conversions_path, 'w') as f:
+    with open(conversation_path, 'w') as f:
         f.write(json.dumps(history))
     res = {
         'dialog_type' : dialog_type,
@@ -180,8 +180,8 @@ def flush(request):
     if search_record is None:
         return JsonResponse({'error': '搜索记录不存在'}, status=404)
     else:
-        conversions_path = search_record.conversation_path
+        conversation_path = search_record.conversation_path
         import os
-        if os.path.exists(conversions_path):
-            os.remove(conversions_path)
+        if os.path.exists(conversation_path):
+            os.remove(conversation_path)
         HttpRequest('清空成功', status=200)
