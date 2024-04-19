@@ -19,20 +19,29 @@ from django.urls import path
 from django.conf import settings
 from django.conf.urls.static import static
 
-from business.api.auth import login, signup, testLogin, logout, userInfo
-from business.api.userInteraction import like_paper, score_paper, collect_paper
+from business.api.auth import login, signup, testLogin, logout, manager_login, manager_logout
+from business.api.userInteraction import like_paper, score_paper, collect_paper, report_comment, comment_paper, \
+    batch_download_papers
 from business.api import user_info
 from business.api.search import vector_query, dialog_query, flush
 
 urlpatterns = [
-                    path("admin/", admin.site.urls),
-                    path("api/login", login),
-                    path("api/signup", signup),
-                    path("api/testLogin", testLogin),
-                    path("api/logout", logout),
-                    path("api/likePaper", like_paper),
-                    path("api/scorePaper", score_paper),
-                    path("api/collectPaper", collect_paper),
+                  path("admin/", admin.site.urls),
+                  # 用户及管理员认证模块
+                  path("api/login", login),
+                  path("api/sign", signup),
+                  path("api/testLogin", testLogin),
+                  path("api/logout", logout),
+                  path("api/managerLogin", manager_login),
+                  path("api/managerLogout", manager_logout),
+
+                  # 用户交互模块
+                  path("api/userLikePaper", like_paper),
+                  path("api/userScoring", score_paper),
+                  path("api/collectPaper", collect_paper),
+                  path("api/reportComment", report_comment),
+                  path("api/commentPaper", comment_paper),
+                  path("api/batchDownload", batch_download_papers),
 
                     # 个人信息模块
                     path("api/userInfo/userInfo", user_info.user_info),
