@@ -226,8 +226,8 @@ def upload_paper(request):
         user = User.objects.filter(username=username).first()
         if user and file:
             # 保存文件
-            file_name = os.path.basename(file.name)
-            file_ext = os.path.splitext(file_name)[1]
+            file_name = os.path.splitext(file.name)[0]
+            file_ext = os.path.splitext(file.name)[1]
             store_name = file_name + time.strftime('%Y%m%d%H%M%S') + '_%d' % random.randint(0, 100) + file_ext
             file_size = file.size
             file_path = os.path.join(USER_DOCUMENTS_PATH, store_name)
