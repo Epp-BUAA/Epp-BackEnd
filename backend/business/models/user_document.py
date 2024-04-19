@@ -23,7 +23,7 @@ class UserDocument(models.Model):
     user_id = models.ForeignKey(User, on_delete=models.CASCADE)
     title = models.CharField(max_length=255)
     local_path = models.CharField(max_length=255)
-    upload_time = models.DateTimeField(auto_now_add=True)
+    upload_date = models.DateTimeField(auto_now_add=True)
     format = models.CharField(max_length=50)
     size = models.IntegerField()  # 文件大小以字节为单位
 

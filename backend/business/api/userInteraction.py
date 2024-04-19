@@ -7,13 +7,14 @@ import time
 import zipfile
 import os
 from django.http import JsonResponse
-from business.models import User, Paper, PaperScore, CommentReport, FirstLevelComment, SecondLevelComment
+from business.models import User, Paper, PaperScore, CommentReport, FirstLevelComment, SecondLevelComment, UserDocument
 from business.utils.downloadPaper import downloadPaper
-from backend.settings import BATCH_DOWNLOAD_PATH, BATCH_DOWNLOAD_URL
+from backend.settings import BATCH_DOWNLOAD_PATH, BATCH_DOWNLOAD_URL, USER_DOCUMENTS_PATH, USER_DOCUMENTS_URL
 
 if not os.path.exists(BATCH_DOWNLOAD_PATH):
     os.makedirs(BATCH_DOWNLOAD_PATH)
-
+if not os.path.exists(USER_DOCUMENTS_PATH):
+    os.makedirs(USER_DOCUMENTS_PATH)
 
 def like_paper(request):
     """
@@ -209,5 +210,38 @@ def batch_download_papers(request):
             return JsonResponse({'message': '下载成功', 'zip_url': zip_url, 'is_success': True})
         else:
             return JsonResponse({'error': '用户或文献不存在', 'is_success': False}, status=400)
+    else:
+        return JsonResponse({'error': '请求方法错误', 'is_success': False}, status=400)
+
+
+# 综述报告下载，在获得综述列表时会返回每篇综述的URL，直接下载即可
+
+def upload_paper(request):
+    """
+    上传文献
+    """
+    if request.method == 'POST':
+        file = request.FILES.get('new_paper')
+        username = request.session.get('username')
+        user = User.objects.filter(username=username).first()
+        if user and file:
+            # 保存文件
+            file_name = os.path.basename(file.name)
+            file_ext = os.path.splitext(file_name)[1]
+            store_name = file_name + time.strftime('%Y%m%d%H%M%S') + '_%d' % random.randint(0, 100) + file_ext
+            file_size = file.size
+            file_path = os.path.join(USER_DOCUMENTS_PATH, store_name)
+            with open(file_path, 'wb') as f:
+                for chunk in file.chunks():
+                    f.write(chunk)
+            # 保存文献信息
+            usr_document = UserDocument(user_id=user, title=file_name, local_path=file_path, format=file_ext,
+                                        size=file_size)
+            usr_document.save()
+            file_url = USER_DOCUMENTS_URL + store_name
+            return JsonResponse({'message': '上传成功', 'file_id': usr_document.document_id, 'file_url': file_url,
+                                 'is_success': True})
+        else:
+            return JsonResponse({'error': '用户或文件不存在', 'is_success': False}, status=400)
     else:
         return JsonResponse({'error': '请求方法错误', 'is_success': False}, status=400)

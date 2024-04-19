@@ -188,3 +188,4 @@ BATCH_DOWNLOAD_PATH = 'resource/database/users/batch_download'  # 批量下载�
 
 PAPERS_URL = '/resource/database/papers/'  # 数据库论文本地URL
 BATCH_DOWNLOAD_URL = '/resource/database/users/batch_download/'  # 批量下载文件本地URL
+USER_DOCUMENTS_URL = '/resource/uploads/users/documents/'  # 用户上传文件本地URL
