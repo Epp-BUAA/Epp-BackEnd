@@ -5,7 +5,7 @@ api/serach/...
 '''
 import json, openai
 from django.http import JsonResponse, HttpRequest
-from backend.business.models.search_record import SearchRecord, User
+from business.models.search_record import SearchRecord, User
 from django.conf import settings
 import datetime
 
