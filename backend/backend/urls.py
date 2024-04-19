@@ -22,7 +22,7 @@ from django.conf.urls.static import static
 from business.api.auth import login, signup, testLogin, logout, userInfo
 from business.api.userInteraction import like_paper, score_paper, collect_paper
 from business.api import user_info
-from business.api.search import vector_query, dialog_query
+from business.api.search import vector_query, dialog_query, flush
 
 urlpatterns = [
                     path("admin/", admin.site.urls),
@@ -44,5 +44,6 @@ urlpatterns = [
                     # 信息检索模块
                     path("api/search/vectorQuery", vector_query),
                     path("api/search/dialogQuery", dialog_query),
+                    path("api/search/flush", flush),
 
               ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
