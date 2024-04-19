@@ -47,6 +47,6 @@ class SecondLevelComment(models.Model):
     date = models.DateTimeField(auto_now_add=True)
     text = models.TextField()
     like_count = models.IntegerField(default=0)
-    lever1_comment = models.ForeignKey(FirstLevelComment, on_delete=models.CASCADE)
+    level1_comment = models.ForeignKey(FirstLevelComment, on_delete=models.CASCADE)
     reply_comment = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True)
     liked_by_users = models.ManyToManyField(User, related_name='liked_second_level_comments', blank=True)

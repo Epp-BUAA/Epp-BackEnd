@@ -183,4 +183,8 @@ USER_DOCUMENTS_PATH = 'resource/uploads/users/documents'  # 用户上传文件�
 USER_REPORTS_PATH = 'resource/database/users/reports'  # 用户生成报告路径
 USER_SEARCH_CONSERVATION_PATH = 'resource/database/users/conversation/search'  # 调研助手对话文件路径
 USER_READ_CONSERVATION_PATH = 'resource/database/users/conversation/search'  # 论文研读助手对话文件路径
-PAPERS_PATH = 'resource/database/papers'  # 数据库论文路径
+PAPERS_PATH = 'resource/database/papers/'  # 数据库论文路径
+BATCH_DOWNLOAD_PATH = 'resource/database/users/batch_download'  # 批量下载文件路径
+
+PAPERS_URL = '/resource/database/papers/'  # 数据库论文本地URL
+BATCH_DOWNLOAD_URL = '/resource/database/users/batch_download/'  # 批量下载文件本地URL

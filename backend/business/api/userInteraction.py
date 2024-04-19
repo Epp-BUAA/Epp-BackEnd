@@ -2,8 +2,17 @@
     用户交互模块
 """
 import json
+import random
+import time
+import zipfile
+import os
 from django.http import JsonResponse
 from business.models import User, Paper, PaperScore, CommentReport, FirstLevelComment, SecondLevelComment
+from business.utils.downloadPaper import downloadPaper
+from backend.settings import BATCH_DOWNLOAD_PATH, BATCH_DOWNLOAD_URL
+
+if not os.path.exists(BATCH_DOWNLOAD_PATH):
+    os.makedirs(BATCH_DOWNLOAD_PATH)
 
 
 def like_paper(request):
@@ -159,6 +168,45 @@ def comment_paper(request):
                                              reply_comment=reply_comment)
                 comment.save()
             return JsonResponse({'message': '评论成功', 'is_success': True})
+        else:
+            return JsonResponse({'error': '用户或文献不存在', 'is_success': False}, status=400)
+    else:
+        return JsonResponse({'error': '请求方法错误', 'is_success': False}, status=400)
+
+
+def batch_download_papers(request):
+    """
+    批量下载文献
+    """
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        username = request.session.get('username')
+        paper_ids = data.get('paper_id_list')
+        user = User.objects.filter(username=username).first()
+        papers = Paper.objects.filter(paper_id__in=paper_ids)
+        if user and papers:
+            for paper in papers:
+                # 首先判断文献是否有本地副本，没有则下载到服务器
+                if not paper.local_path:
+                    original_url = paper.original_url
+                    # 将路径中的abs修改为pdf，最后加上.pdf后缀
+                    original_url = original_url.replace('abs', 'pdf') + '.pdf'
+                    # 访问url，下载文献到服务器
+                    filename = str(paper.paper_id)
+                    local_path = downloadPaper(original_url, filename)
+                    paper.local_path = local_path
+                    paper.save()
+
+            # 将所有paper打包成zip文件，存入BATCH_DOWNLOAD_PATH，返回zip文件路径
+            zip_name = (username + '_batchDownload_' + time.strftime('%Y%m%d%H%M%S') +
+                        '_%d' % random.randint(0, 100) + '.zip')
+            zip_file_path = os.path.join(BATCH_DOWNLOAD_PATH, zip_name)
+            print(zip_file_path)
+            with zipfile.ZipFile(zip_file_path, 'w') as z:
+                for paper in papers:
+                    z.write(paper.local_path, paper.title + '.pdf')
+            zip_url = BATCH_DOWNLOAD_URL + zip_name
+            return JsonResponse({'message': '下载成功', 'zip_url': zip_url, 'is_success': True})
         else:
             return JsonResponse({'error': '用户或文献不存在', 'is_success': False}, status=400)
     else:
