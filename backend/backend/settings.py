@@ -76,7 +76,7 @@ CORS_ALLOW_HEADERS = (
 
 ROOT_URLCONF = "backend.urls"
 
-RESOURCE_PATH = BASE_DIR + '/resource'
+RESOURCE_PATH = os.path.join(BASE_DIR, 'resource')
 
 TEMPLATES = [
     {
