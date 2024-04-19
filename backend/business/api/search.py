@@ -5,6 +5,9 @@ api/serach/...
 '''
 import json, openai
 from django.http import JsonResponse, HttpRequest
+from backend.business.models.search_record import SearchRecord, User
+from django.conf import settings
+import datetime
 
 server_ip = '172.17.62.88'
 url = f'http://{server_ip}:8000'
@@ -27,13 +30,12 @@ def queryGLM(msg : str, history=None) -> str:
     
 
 from django.views.decorators.http import require_http_methods
-from django.conf import settings
 
-@require_http_methods(["POST"])
+@require_http_methods(["GET"])
 def vector_query(Request):
     """
     本函数用于处理向量化检索的请求
-    :param Request: 请求，类型为POST
+    :param Request: 请求，类型为GET
         内容包含：{
             "user_id": 用户id,
             "search_content": 检索关键词
@@ -105,7 +107,7 @@ def dialog_query(request):
             - 如果对话类型为'dialog'
                 1. 大模型正常推理就可以了
         3. 把聊天记录存在本地
-        4. 返回json对象
+        4. 返回json对象,存入到数据库，见backend/business/models/search_record.py
     """
     import sys, os
     username = request.session.get('username')
@@ -113,10 +115,21 @@ def dialog_query(request):
     message = data.get('message')
     keyword = data.get('keyword')
     paper_ids = data.get('paper_ids')
-    conversions_path = settings.RESOURCE_PATH+'/conversions/' + username + '_' + 'keyword' + '.json'
+    user = User.objects.filter(username=username).first()
+    if user is None:
+        return JsonResponse({'error': '用户不存在'}, status=404)
+    search_record = SearchRecord.objects.filter(user_id=user.user_id, keyword=keyword).first()
+    if search_record is None:
+        # 创建新的聊天记录
+        search_record = SearchRecord.objects.create(user_id=user.user_id, keyword=keyword)
+        search_record.conversation_path = settings.USER_SEARCH_CONSERVATION_PATH + '/' + search_record.search_record_id + '.json'
+        search_record.date = datetime.datetime.now()
+        search_record.save()
+    # 历史记录的json文件名称和search_record_id一致
+    conversation_path = settings.USER_SEARCH_CONSERVATION_PATH + '/' + search_record.search_record_id + '.json'    
     history = []
-    if os.path.exists(conversions_path):
-        c = json.loads(open(conversions_path).read())
+    if os.path.exists(conversation_path):
+        c = json.loads(open(conversation_path).read())
         history = c
     history.append({ 'role' : 'user', 'content' : message })
     # 先判断下是不是要查询论文
@@ -135,13 +148,14 @@ def dialog_query(request):
             # TODO: 这里需要把papers的信息整理到content里面
         history.append({ 'role' : 'assistant', 'content' : content })
     else:
-        # 对话
-        response = queryGLM(message, history)
+        # 对话，保存3轮最多了，担心吃不下
+        print(history.copy()[-5:])
+        response = queryGLM(message, history.copy()[-5:])
         dialog_type = 'dialog'
         papers = []
         content = response
         history.append({ 'role' : 'assistant', 'content' : content })
-    with open(conversions_path, 'w') as f:
+    with open(conversation_path, 'w') as f:
         f.write(json.dumps(history))
     res = {
         'dialog_type' : dialog_type,
@@ -150,6 +164,7 @@ def dialog_query(request):
     }
     return JsonResponse(res, status=200)
 
+@require_http_methods(["DELETE"])
 def flush(request):
     '''
     这是用来清空对话记录的函数
@@ -161,8 +176,12 @@ def flush(request):
     username = request.session.get('username')
     data = json.loads(request.body)
     keyword = data.get('keyword')
-    conversions_path = settings.RESOURCE_PATH+'/conversions/' + username + '_' + keyword + '.json'
-    import os
-    if os.path.exists(conversions_path):
-        os.remove(conversions_path)
-    HttpRequest('清空成功', status=200)
+    search_record = SearchRecord.objects.filter(user_id=username, keyword=keyword).first()
+    if search_record is None:
+        return JsonResponse({'error': '搜索记录不存在'}, status=404)
+    else:
+        conversation_path = search_record.conversation_path
+        import os
+        if os.path.exists(conversation_path):
+            os.remove(conversation_path)
+        HttpRequest('清空成功', status=200)

@@ -23,7 +23,7 @@ from business.api.auth import login, signup, testLogin, logout, manager_login, m
 from business.api.userInteraction import like_paper, score_paper, collect_paper, report_comment, comment_paper, \
     batch_download_papers, upload_paper
 from business.api import user_info
-from business.api.search import vector_query, dialog_query
+from business.api.search import vector_query, dialog_query, flush
 
 urlpatterns = [
                   path("admin/", admin.site.urls),
@@ -44,15 +44,16 @@ urlpatterns = [
                   path("api/batchDownload", batch_download_papers),
                   path("api/uploadPaper", upload_paper),
 
-                  # 个人信息模块
-                  path("api/userInfo/userInfo", user_info.user_info),
-                  path("api/userInfo/avatar", user_info.modify_avatar),
-                  path("api/userInfo/collectedPapers", user_info.collected_papers),
-                  path("api/userInfo/searchHistory", user_info.search_history),
-                  path("api/userInfo/delSearchHistory", user_info.delete_search_history),
-
-                  # 信息检索模块
-                  path("api/search/vectorQuery", vector_query),
-                  path("api/search/dialogQuery", dialog_query),
+                    # 个人信息模块
+                    path("api/userInfo/userInfo", user_info.user_info),
+                    path("api/userInfo/avatar", user_info.modify_avatar),
+                    path("api/userInfo/collectedPapers", user_info.collected_papers),
+                    path("api/userInfo/searchHistory", user_info.search_history),
+                    path("api/userInfo/delSearchHistory", user_info.delete_search_history),
+                    
+                    # 信息检索模块
+                    path("api/search/vectorQuery", vector_query),
+                    path("api/search/dialogQuery", dialog_query),
+                    path("api/search/flush", flush),
 
               ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
