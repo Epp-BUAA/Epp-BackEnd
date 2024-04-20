@@ -90,17 +90,17 @@ def collect_paper(request):
         paper_id = data.get('paper_id')
         user = User.objects.filter(username=username).first()
         paper = Paper.objects.filter(paper_id=paper_id).first()
-        collected = user.collected_papers.filter(paper_id=paper_id).first()
+        collected = user.collected_papers_list.filter(paper_id=paper_id).first()
         # 取消收藏
         if collected:
-            user.collected_papers.remove(paper)
+            user.collected_papers_list.remove(paper)
             paper.collect_count -= 1
             user.save()
             paper.save()
             return JsonResponse({'message': '取消收藏成功', 'is_success': True})
         # 收藏
         if user and paper:
-            user.collected_papers.add(paper)
+            user.collected_papers_list.add(paper)
             paper.collect_count += 1
             user.save()
             paper.save()

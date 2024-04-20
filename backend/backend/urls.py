@@ -22,11 +22,12 @@ from django.conf.urls.static import static
 from business.api.auth import login, signup, testLogin, logout, manager_login, manager_logout
 from business.api.userInteraction import like_paper, score_paper, collect_paper, report_comment, comment_paper, \
     batch_download_papers, upload_paper, remove_uploaded_paper
-from business.api import user_info
+from business.api import user_info, manage
 from business.api.search import vector_query, dialog_query, flush
 
 urlpatterns = [
                   path("admin/", admin.site.urls),
+                  
                   # 用户及管理员认证模块
                   path("api/login", login),
                   path("api/sign", signup),
@@ -48,9 +49,14 @@ urlpatterns = [
                   # 个人信息模块
                   path("api/userInfo/userInfo", user_info.user_info),
                   path("api/userInfo/avatar", user_info.modify_avatar),
-                  path("api/userInfo/collectedPapers", user_info.collected_papers),
-                  path("api/userInfo/searchHistory", user_info.search_history),
+                  path("api/userInfo/collectedPapers", user_info.collected_papers_list),
+                  path("api/userInfo/searchHistory", user_info.search_history_list),
                   path("api/userInfo/delSearchHistory", user_info.delete_search_history),
+                  path("api/userInfo/documents", user_info.document_list),
+
+                  # 数据管理模块
+                  path("api/manage/users", manage.user_list),
+                  path("api/manage/papers", manage.paper_list),
 
                   # 信息检索模块
                   path("api/search/vectorQuery", vector_query),

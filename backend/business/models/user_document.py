@@ -5,7 +5,6 @@ from django.db import models
 import uuid
 
 from .user import User
-from business.utils import storage
 
 
 class UserDocument(models.Model):

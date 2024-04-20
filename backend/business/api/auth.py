@@ -59,7 +59,7 @@ def userInfo(request):
         user = User.objects.filter(username=username).first()
         return JsonResponse({'user_id': user.user_id, 'username': user.username, 'avatar': user.avatar.url
                                 , 'registration_date': user.registration_date,
-                             'collected_papers': user.collected_papers.all().count(),
+                             'collected_papers': user.collected_papers_list.all().count(),
                              'liked_papers': user.liked_papers.all().count()})
     else:
         return JsonResponse({'error': '请求方法错误'}, status=400)
