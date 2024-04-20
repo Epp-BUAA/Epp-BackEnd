@@ -139,6 +139,7 @@ def document_list(request):
     if not user:
         return reply.fail(msg="请先正确登录")
 
+    print(username)
     documents = UserDocument.objects.filter(user_id=user).order_by('-upload_date')
     data = {'total': len(documents), 'documents': []}
     for document in documents:
@@ -147,6 +148,6 @@ def document_list(request):
             "title": document.title,
             "format": document.format,
             "size": document.size,
-            "date": document.date.strftime("%Y-%m-%d %H:%M:%S")
+            "date": document.upload_date.strftime("%Y-%m-%d %H:%M:%S")
         })
     return reply.success(data=data, msg='文件列表获取成功')
