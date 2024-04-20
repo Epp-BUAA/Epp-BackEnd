@@ -9,7 +9,8 @@ from django.http import JsonResponse, HttpRequest
 server_ip = '172.17.62.88'
 url = f'http://{server_ip}:8000'
 
-def queryGLM(msg : str, history=None) -> str:
+
+def queryGLM(msg: str, history=None) -> str:
     '''
     对chatGLM2-6B发出一次单纯的询问
     '''
@@ -24,6 +25,7 @@ def queryGLM(msg : str, history=None) -> str:
     print("ChatGLM2-6B：", response.choices[0].message.content)
     history.append({"role": "assistant", "content": response.choices[0].message.content})
     return response.choices[0].message.content
+
 
 def paper_interpret(request):
     '''
@@ -41,4 +43,3 @@ def paper_interpret(request):
         content: str
     }
     '''
-    
