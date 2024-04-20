@@ -79,7 +79,7 @@ def search_history_list(request):
     user = User.objects.filter(username=username).first()
     if not user:
         return reply.fail(msg="请先正确登录")
-    SearchRecord(user_id=user, keyword="man~").save()
+
     search_records = SearchRecord.objects.filter(user_id=user).order_by('-date')
     data = {'total': len(search_records), 'keywords': []}
     for item in search_records:
