@@ -1,0 +1,29 @@
+name: AutoPush
+on: push
+
+jobs:
+  deployment:
+    runs-on: ubuntu-latest
+    name: Deployment
+
+    steps:
+      - name: Check Out
+        uses: actions/checkout@v3
+        
+      - name: Setup Git
+        run: |
+          git config --global user.name "MarSeventh"
+          git config --global user.email "1193267292@qq.com"
+
+      - name: Setup SSH Key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+
+      - name: Deploy
+        run: |
+          ssh-keyscan -H 114.116.214.56 >> ~/.ssh/known_hosts
+          git fetch --unshallow origin
+          git remote add huawei git@114.116.214.56:/home/git/EPP/Epp_BackEnd
+          git push -u  huawei master
