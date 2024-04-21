@@ -9,6 +9,9 @@ from django.http import JsonResponse
 import json
 import random
 import time
+from django.views.decorators.http import require_http_methods
+
+from business.utils import reply
 
 if not os.path.exists(USER_DOCUMENTS_PATH):
     os.makedirs(USER_DOCUMENTS_PATH)
@@ -69,3 +72,25 @@ def remove_uploaded_paper(request):
             return JsonResponse({'error': '用户或文献不存在', 'is_success': False}, status=400)
     else:
         return JsonResponse({'error': '请求方法错误', 'is_success': False}, status=400)
+
+
+@require_http_methods('GET')
+def document_list(request):
+    """ 用户上传文件列表 """
+    username = request.session.get('username')
+    user = User.objects.filter(username=username).first()
+    if not user:
+        return reply.fail(msg="请先正确登录")
+
+    print(username)
+    documents = UserDocument.objects.filter(user_id=user).order_by('-upload_date')
+    data = {'total': len(documents), 'documents': []}
+    for document in documents:
+        data['documents'].append({
+            "document_id": document.document_id,
+            "title": document.title,
+            "format": document.format,
+            "size": document.size,
+            "date": document.upload_date.strftime("%Y-%m-%d %H:%M:%S")
+        })
+    return reply.success(data=data, msg='文件列表获取成功')

@@ -211,3 +211,32 @@ def batch_download_papers(request):
             return JsonResponse({'error': '用户或文献不存在', 'is_success': False}, status=400)
     else:
         return JsonResponse({'error': '请求方法错误', 'is_success': False}, status=400)
+
+
+def get_paper_info(request):
+    """
+    获取文献信息
+    """
+    if request.method == 'GET':
+        paper_id = request.GET.get('paper_id')
+        paper = Paper.objects.filter(paper_id=paper_id).first()
+        if paper:
+            return JsonResponse({'message': '获取成功', 'paper_info': {
+                'paper_id': paper.paper_id,
+                'title': paper.title,
+                'authors': paper.authors.split(','),
+                'abstract': paper.abstract,
+                'publication_date': paper.publication_date.strftime("%Y-%m-%d"),
+                'journal': paper.journal,
+                'citation_count': paper.citation_count,
+                'read_count': paper.read_count,
+                'like_count': paper.like_count,
+                'collect_count': paper.collect_count,
+                'download_count': paper.download_count,
+                'score': paper.score,
+                'original_url': paper.original_url
+            }, 'is_success': True})
+        else:
+            return JsonResponse({'error': '文献不存在', 'is_success': False}, status=400)
+    else:
+        return JsonResponse({'error': '请求方法错误', 'is_success': False}, status=400)

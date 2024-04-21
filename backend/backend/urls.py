@@ -21,8 +21,8 @@ from django.conf.urls.static import static
 
 from business.api.auth import login, signup, testLogin, logout, manager_login, manager_logout
 from business.api.paper_details import like_paper, score_paper, collect_paper, report_comment, comment_paper, \
-    batch_download_papers
-from business.api.update_document import upload_paper, remove_uploaded_paper
+    batch_download_papers, get_paper_info
+from business.api.update_document import upload_paper, remove_uploaded_paper, document_list
 from business.api import user_info, manage
 from business.api.search import vector_query, dialog_query, flush
 
@@ -37,15 +37,19 @@ urlpatterns = [
                   path("api/managerLogin", manager_login),
                   path("api/managerLogout", manager_logout),
 
-                  # 用户交互模块
+                  # 论文详情界面
                   path("api/userLikePaper", like_paper),
                   path("api/userScoring", score_paper),
                   path("api/collectPaper", collect_paper),
                   path("api/reportComment", report_comment),
                   path("api/commentPaper", comment_paper),
                   path("api/batchDownload", batch_download_papers),
+                  path("api/getPaperInfo", get_paper_info),
+
+                  # 用户上传论文模块
                   path("api/uploadPaper", upload_paper),
                   path("api/removeUploadedPaper", remove_uploaded_paper),
+                  path("api/userInfo/documents", document_list),
 
                   # 个人信息模块
                   path("api/userInfo/userInfo", user_info.user_info),
@@ -53,7 +57,6 @@ urlpatterns = [
                   path("api/userInfo/collectedPapers", user_info.collected_papers_list),
                   path("api/userInfo/searchHistory", user_info.search_history_list),
                   path("api/userInfo/delSearchHistory", user_info.delete_search_history),
-                  path("api/userInfo/documents", user_info.document_list),
 
                   # 数据管理模块
                   path("api/manage/users", manage.user_list),
