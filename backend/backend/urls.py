@@ -21,13 +21,14 @@ from django.conf.urls.static import static
 
 from business.api.auth import login, signup, testLogin, logout, manager_login, manager_logout
 from business.api.paper_details import like_paper, score_paper, collect_paper, report_comment, comment_paper, \
-    batch_download_papers, upload_paper, remove_uploaded_paper
+    batch_download_papers
+from business.api.update_document import upload_paper, remove_uploaded_paper
 from business.api import user_info, manage
 from business.api.search import vector_query, dialog_query, flush
 
 urlpatterns = [
                   path("admin/", admin.site.urls),
-                  
+
                   # 用户及管理员认证模块
                   path("api/login", login),
                   path("api/sign", signup),
