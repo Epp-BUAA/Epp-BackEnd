@@ -9,6 +9,8 @@ from business.models.search_record import SearchRecord, User
 from django.conf import settings
 import datetime
 
+from backend.vector_database.sci_bert_embedding import search_paper_with_query
+
 server_ip = '172.17.62.88'
 url = f'http://{server_ip}:8000'
 
@@ -32,12 +34,11 @@ def queryGLM(msg : str, history=None) -> str:
 from django.views.decorators.http import require_http_methods
 
 @require_http_methods(["GET"])
-def vector_query(Request):
+def vector_query(request):
     """
     本函数用于处理向量化检索的请求
     :param Request: 请求，类型为GET
         内容包含：{
-            "user_id": 用户id,
             "search_content": 检索关键词
         }
     :return: 返回一个json对象，其中为一个列表，列表中的每个元素为一个文献的信息
@@ -56,14 +57,21 @@ def vector_query(Request):
             }
         ]
     }
-    
+
     TODO:
         1. 从Request中获取user_id和search_content
         2. 将search_content存入数据库
         3. 使用向量检索从数据库中获取文献信息
         4. 返回文献信息
     """
-    pass
+
+    data = json.loads(request.body)
+    search_content = data.get('search_content')
+    filtered_paper = search_paper_with_query(search_content, limit=20)
+    filtered_paper_list = []
+    for paper in filtered_paper:
+        filtered_paper_list.append(paper.to_dict())
+    return JsonResponse({"paper_infos": filtered_paper_list}, status=200)
 
 @require_http_methods(["POST"])
 def dialog_query(request):

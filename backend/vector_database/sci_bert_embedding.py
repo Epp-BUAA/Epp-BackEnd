@@ -106,18 +106,18 @@ def get_papers_exclude_author():
         print(paper.title)
 
 
-def search_paper_with_query(text):
+def search_paper_with_query(text, limit=20):
     t, m = get_sci_bert()
     collection = init_milvus("SE2024")
     text = translate_zh2en(text)  # 任意语言到英文翻译
     print(text)
     query_embedding = text_embedding(text, t, m).cpu().detach().numpy()
-    search_results = milvus_search(collection, query_embedding, 20)
+    search_results = milvus_search(collection, query_embedding, limit)
     entities = [x.entity.to_dict() for x in search_results[0]]
     ids = [i['entity']['normal_id'] for i in entities]
     filtered_paper = Paper.objects.filter(paper_id__in=ids)
-    for paper in filtered_paper:
-        print(paper.title)
+    # for paper in filtered_paper:
+    #     print(paper.title)
     return filtered_paper
 
 
