@@ -189,7 +189,7 @@ def batch_download_papers(request):
         if user and papers:
             for paper in papers:
                 # 首先判断文献是否有本地副本，没有则下载到服务器
-                if not paper.local_path:
+                if not paper.local_path or not os.path.exists(paper.local_path):
                     original_url = paper.original_url
                     # 将路径中的abs修改为pdf，最后加上.pdf后缀
                     original_url = original_url.replace('abs', 'pdf') + '.pdf'
