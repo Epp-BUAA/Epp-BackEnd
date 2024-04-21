@@ -163,13 +163,94 @@ def comment_paper(request):
                 reply_comment_id = data.get('reply_comment_id')
                 reply_comment = None
                 if reply_comment_id:
-                    reply_comment = SecondLevelComment.objects.filter(comment_id=reply_comment).first()
+                    reply_comment = SecondLevelComment.objects.filter(comment_id=reply_comment_id).first()
                 comment = SecondLevelComment(user_id=user, paper_id=paper, text=text, level1_comment=level1_comment,
                                              reply_comment=reply_comment)
                 comment.save()
             return JsonResponse({'message': '评论成功', 'is_success': True})
         else:
             return JsonResponse({'error': '用户或文献不存在', 'is_success': False}, status=400)
+    else:
+        return JsonResponse({'error': '请求方法错误', 'is_success': False}, status=400)
+
+
+def get_first_comment(request):
+    """
+    获取一级评论
+    """
+    if request.method == 'GET':
+        paper_id = request.GET.get('paper_id')
+        comments = FirstLevelComment.objects.filter(paper_id=paper_id)
+        data = []
+        for comment in comments:
+            data.append({
+                'comment_id': comment.comment_id,
+                'date': comment.date.strftime("%Y-%m-%d %H:%M:%S"),
+                'text': comment.text,
+                'like_count': comment.like_count,
+                'username': comment.user_id.username,
+                'user_image': comment.user_id.avatar.url
+            })
+        return JsonResponse({'message': '获取成功', 'comments': data, 'is_success': True})
+    else:
+        return JsonResponse({'error': '请求方法错误', 'is_success': False}, status=400)
+
+
+def get_second_comment(request):
+    """
+    获取二级评论
+    """
+    if request.method == 'GET':
+        level1_comment_id = request.GET.get('comment1_id')
+        comments = SecondLevelComment.objects.filter(level1_comment_id=level1_comment_id)
+        data = []
+        for comment in comments:
+            data.append({
+                'comment_id': comment.comment_id,
+                'date': comment.date.strftime("%Y-%m-%d %H:%M:%S"),
+                'text': comment.text,
+                'like_count': comment.like_count,
+                'to_username': comment.reply_comment.user_id.username if comment.reply_comment else None,
+                'username': comment.user_id.username,
+                'user_image': comment.user_id.avatar.url
+            })
+        return JsonResponse({'message': '获取成功', 'comments': data, 'is_success': True})
+    else:
+        return JsonResponse({'error': '请求方法错误', 'is_success': False}, status=400)
+
+
+def like_comment(request):
+    """
+    点赞评论/取消点赞评论
+    """
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        username = request.session.get('username')
+        comment_id = data.get('comment_id')
+        comment_level = data.get('comment_level')
+        user = User.objects.filter(username=username).first()
+        # 这里需要知道是一级评论还是二级评论
+        comment = None
+        if comment_level == 1:
+            comment = FirstLevelComment.objects.filter(comment_id=comment_id).first()
+        elif comment_level == 2:
+            comment = SecondLevelComment.objects.filter(comment_id=comment_id).first()
+        if user and comment:
+            liked = comment.liked_by_users.filter(user_id=user.user_id).first()
+            # 取消点赞
+            if liked:
+                comment.like_count -= 1
+                comment.liked_by_users.remove(user)
+                comment.save()
+                return JsonResponse({'message': '取消点赞成功', 'is_success': True})
+            # 点赞
+            else:
+                comment.like_count += 1
+                comment.liked_by_users.add(user)
+                comment.save()
+                return JsonResponse({'message': '点赞成功', 'is_success': True})
+        else:
+            return JsonResponse({'error': '用户或评论不存在', 'is_success': False}, status=400)
     else:
         return JsonResponse({'error': '请求方法错误', 'is_success': False}, status=400)
 

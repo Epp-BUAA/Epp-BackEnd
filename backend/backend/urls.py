@@ -21,7 +21,7 @@ from django.conf.urls.static import static
 
 from business.api.auth import login, signup, testLogin, logout, manager_login, manager_logout
 from business.api.paper_details import like_paper, score_paper, collect_paper, report_comment, comment_paper, \
-    batch_download_papers, get_paper_info
+    batch_download_papers, get_paper_info, get_first_comment, get_second_comment, like_comment
 from business.api.update_document import upload_paper, remove_uploaded_paper, document_list
 from business.api import user_info, manage
 from business.api.search import vector_query, dialog_query, flush
@@ -45,6 +45,9 @@ urlpatterns = [
                   path("api/commentPaper", comment_paper),
                   path("api/batchDownload", batch_download_papers),
                   path("api/getPaperInfo", get_paper_info),
+                  path("api/getComment1", get_first_comment),
+                  path("api/getComment2", get_second_comment),
+                  path("api/likeComment", like_comment),
 
                   # 用户上传论文模块
                   path("api/uploadPaper", upload_paper),
