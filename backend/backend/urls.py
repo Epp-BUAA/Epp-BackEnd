@@ -20,7 +20,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 
 from business.api.auth import login, signup, testLogin, logout, manager_login, manager_logout
-from business.api.userInteraction import like_paper, score_paper, collect_paper, report_comment, comment_paper, \
+from business.api.paper_details import like_paper, score_paper, collect_paper, report_comment, comment_paper, \
     batch_download_papers, upload_paper, remove_uploaded_paper
 from business.api import user_info, manage
 from business.api.search import vector_query, dialog_query, flush
