@@ -1,35 +1,3 @@
-<<<<<<< HEAD
-# Django #
-*.log
-*.pot
-*.pyc
-__pycache__
- 
-# Backup files #
-*.bak
- 
-# If you are using PyCharm #
-.idea/**/workspace.xml
-.idea/**/tasks.xml
-.idea/dictionaries
-.idea/**/dataSources/
-.idea/**/dataSources.ids
-.idea/**/dataSources.xml
-.idea/**/dataSources.local.xml
-.idea/**/sqlDataSources.xml
-.idea/**/dynamic.xml
-.idea/**/uiDesigner.xml
-.idea/**/gradle.xml
-.idea/**/libraries
-*.iws /out/
- 
-# Python #
-*.py[cod]
-*$py.class
- 
-# Distribution / packaging
-.Python build/
-=======
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -41,7 +9,6 @@ __pycache__/
 # Distribution / packaging
 .Python
 build/
->>>>>>> 1d54fbc16b32cb48908cff61e90f009270861ac3
 develop-eggs/
 dist/
 downloads/
@@ -53,39 +20,6 @@ parts/
 sdist/
 var/
 wheels/
-<<<<<<< HEAD
-*.egg-info/
-.installed.cfg
-*.egg
-*.manifest
-*.spec
- 
-# Installer logs
-pip-log.txt
-pip-delete-this-directory.txt
- 
-# Unit test / coverage reports
-htmlcov/
-.tox/
-.coverage
-.coverage.*
-.cache
-.pytest_cache/
-nosetests.xml
-coverage.xml
-*.cover
-.hypothesis/
- 
-# pyenv
-.python-version
- 
-# celery
-celerybeat-schedule.*
- 
-# SageMath parsed files
-*.sage.py
- 
-=======
 share/python-wheels/
 *.egg-info/
 .installed.cfg
@@ -185,7 +119,6 @@ celerybeat.pid
 # SageMath parsed files
 *.sage.py
 
->>>>>>> 1d54fbc16b32cb48908cff61e90f009270861ac3
 # Environments
 .env
 .venv
@@ -194,35 +127,6 @@ venv/
 ENV/
 env.bak/
 venv.bak/
-<<<<<<< HEAD
- 
-# mkdocs documentation
-/site
- 
-# mypy
-.mypy_cache/
- 
-# Sublime Text #
-*.tmlanguage.cache
-*.tmPreferences.cache
-*.stTheme.cache
-*.sublime-workspace
-*.sublime-project
- 
-# sftp configuration file
-sftp-config.json
- 
-# Package control specific files Package
-Control.last-run
-Control.ca-list
-Control.ca-bundle
-Control.system-ca-bundle
-GitHub.sublime-settings
-
-pytorch_model.bin
-*.model
-*.safetensors
-=======
 
 # Spyder project settings
 .spyderproject
@@ -261,4 +165,3 @@ cython_debug/
 *.bin
 *.model
 *.safetensors
->>>>>>> 1d54fbc16b32cb48908cff61e90f009270861ac3
