@@ -1,0 +1,270 @@
+Index: vector_database/milvus_test.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>import json\r\n\r\nimport numpy as np\r\nfrom pymilvus import connections, Collection, FieldSchema, CollectionSchema, DataType, MilvusClient\r\n\r\n_DIMENSION = 768      # 向量维度\r\nCLUSTER_ENDPOINT=\"https://in01-525bfa666c9e9de.tc-ap-beijing.vectordb.zilliz.com.cn:443\" # Set your cluster endpoint\r\nTOKEN=\"de81326d1e4d53a6b27804821e986536a2b67575f44e068413b6cf2e1da17e4f6d5a73a6d9e0dfd2a6be151e42136e025fdb6b3d\" # Set your token\r\nCOLLECTION_NAME=\"se2024\"\r\nDATASET_PATH=\"doc/test.json\" # Set your dataset path\r\nconnections.connect(\r\n  alias='default',\r\n  #  Public endpoint obtained from Zilliz Cloud\r\n  uri=CLUSTER_ENDPOINT,\r\n  # API key or a colon-separated cluster username and password\r\n  token=TOKEN,\r\n)\r\n\r\ncollection = Collection(name=COLLECTION_NAME)\r\n\r\nprint(collection.num_entities)\r\nwith open(DATASET_PATH) as f:\r\n    data = json.load(f)\r\n    rows = data['rows']\r\n\r\nrows[0]['title'] = \"这是一个测试文章\"\r\ninsert_data = rows[0]\r\n# 插入数据, 应无id字段, 否则会出现重复id\r\ndef insert_vector(row):\r\n    print(row)\r\n    res = collection.insert(data=row)\r\n    collection.flush()\r\n    print(res)\r\ndef search(limit):\r\n    \"\"\"\r\n    向量检索\r\n    :param collection:\r\n    :param partition_name: 检索指定分区的向量\r\n    :return:\r\n    \"\"\"\r\n    # 将collection加载到内存，必须先加载到内存，然后才能检索\r\n    search_params = {\"metric_type\": \"L2\", \"params\": {\"nprobe\": 10}}\r\n    # 向量搜索\r\n    results = collection.search(\r\n        data=[data[\"rows\"][0]['title_vector']],\r\n        anns_field=\"title_vector\",\r\n        param=search_params,\r\n        output_fields=[\"title\", \"link\"],\r\n        limit=limit\r\n    )\r\n    print(results)\r\n\r\n# insert_vector(insert_data)\r\nsearch(5)
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/vector_database/milvus_test.py b/vector_database/milvus_test.py
+--- a/vector_database/milvus_test.py	
++++ b/vector_database/milvus_test.py	
+@@ -1,37 +1,91 @@
+ import json
+ 
+ import numpy as np
+-from pymilvus import connections, Collection, FieldSchema, CollectionSchema, DataType, MilvusClient
+-
++from pymilvus import connections, Collection, FieldSchema, CollectionSchema, DataType, MilvusClient, Milvus
+ _DIMENSION = 768      # 向量维度
+ CLUSTER_ENDPOINT="https://in01-525bfa666c9e9de.tc-ap-beijing.vectordb.zilliz.com.cn:443" # Set your cluster endpoint
+ TOKEN="de81326d1e4d53a6b27804821e986536a2b67575f44e068413b6cf2e1da17e4f6d5a73a6d9e0dfd2a6be151e42136e025fdb6b3d" # Set your token
+-COLLECTION_NAME="se2024"
+-DATASET_PATH="doc/test.json" # Set your dataset path
+-connections.connect(
+-  alias='default',
+-  #  Public endpoint obtained from Zilliz Cloud
+-  uri=CLUSTER_ENDPOINT,
+-  # API key or a colon-separated cluster username and password
+-  token=TOKEN,
+-)
++COLLECTION_NAME="SE2024"
++
++def init_milvus():
++    DATASET_PATH="doc/test.json" # Set your dataset path
++    connections.connect(
++      alias='default',
++      #  Public endpoint obtained from Zilliz Cloud
++      uri=CLUSTER_ENDPOINT,
++      # API key or a colon-separated cluster username and password
++      token=TOKEN
++    )
++    def _check_collection_exists(collection_name):
++        # 使用 list_collections() 检查集合是否存在
++        return collection_name in connections.list_collections()
++
++    def _get_existing_collection(collection_name):
++        if check_collection_exists(collection_name):
++            # 获取集合
++            return Collection(name=collection_name)
++        else:
++            print(f"Collection '{collection_name}' does not exist.")
++            return None
++
++    collection = get_existing_collection(COLLECTION_NAME)
++    if collection:
++        print(f"Successfully retrieved collection: {collection.name}")
++        return collection
++    else:
++        print("Failed to retrieve collection.")
++        return collection
++
++init_milvus()
++
++# 创建新的收集
++def create_new_collection_or_get_collection(collection_name):
++    fields = [
++        FieldSchema(name="id", dtype=DataType.INT64, is_primary=True, auto_id=True),
++        FieldSchema(name="title", dtype=DataType.VARCHAR, max_length=512),
++        FieldSchema(name="title_vector", dtype=DataType.FLOAT_VECTOR, dim=768),
++        FieldSchema(name="link", dtype=DataType.VARCHAR, max_length=512),
++        FieldSchema(name="reading_time", dtype=DataType.INT64),
++        FieldSchema(name="publication", dtype=DataType.VARCHAR, max_length=512),
++        FieldSchema(name="claps", dtype=DataType.INT64),
++        FieldSchema(name="responses", dtype=DataType.INT64)
++    ]
++
++    # 2. Build the schema*
++    schema = CollectionSchema(
++        fields,
++        description="Schema of Medium articles",
++        enable_dynamic_field=True
++    )
++
++    # 3. Create collection*
++    collection = Collection(
++        name=COLLECTION_NAME,
++        description="Medium articles published between Jan and August in 2020 in prominent publications",
++        schema=schema
++    )
+ 
+-collection = Collection(name=COLLECTION_NAME)
++    # index_params = {
++    #     "index_type": "AUTOINDEX",
++    #     "metric_type": "L2",
++    #     "params": {}
++    # }
++    #
++    # # To name the index, do as follows:
++    # collection.create_index(
++    #     field_name="title_vector",
++    #     index_params=index_params,
++    #     index_name='title_vector_index'  # Optional
++    # )
+ 
+-print(collection.num_entities)
+-with open(DATASET_PATH) as f:
+-    data = json.load(f)
+-    rows = data['rows']
++    return collection
+ 
+-rows[0]['title'] = "这是一个测试文章"
+-insert_data = rows[0]
+-# 插入数据, 应无id字段, 否则会出现重复id
+-def insert_vector(row):
+-    print(row)
+-    res = collection.insert(data=row)
++def insert_vector(collection, rows):
++    res = collection.insert(data=rows)
+     collection.flush()
+     print(res)
+-def search(limit):
++
++def search(collection, vector, limit):
+     """
+     向量检索
+     :param collection:
+@@ -42,13 +96,16 @@
+     search_params = {"metric_type": "L2", "params": {"nprobe": 10}}
+     # 向量搜索
+     results = collection.search(
+-        data=[data["rows"][0]['title_vector']],
+-        anns_field="title_vector",
++        data=[vector],  # Query, 支持多个Query一起检索
++        anns_field="title_vector",  # 向量检索域
+         param=search_params,
+-        output_fields=["title", "link"],
++        output_fields=["title", "link"],  # 返回域
+         limit=limit
+     )
+     print(results)
+ 
+-# insert_vector(insert_data)
+-search(5)
+\ No newline at end of file
++# collections = create_new_collection()
++# for row in rows:
++#     del row['id']
++# insert_vector(collections, rows)
++# search(collections, rows[0]['title_vector'],5)
+\ No newline at end of file
+Index: vector_database/sci_bert_embedding.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/vector_database/sci_bert_embedding.py b/vector_database/sci_bert_embedding.py
+--- a/vector_database/sci_bert_embedding.py	
++++ b/vector_database/sci_bert_embedding.py	
+@@ -1,0 +1,111 @@
++import os
++import django
++
++from transformers import AutoTokenizer, AutoModel
++import torch
++os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'backend.settings')
++
++django.setup()
++from business.models import Paper
++model_dir = "./sci_bert"
++
++def get_sci_bert():
++    model = AutoModel.from_pretrained(model_dir)
++    print(f'Model loaded from {model_dir} OK!')
++    tokenizer = AutoTokenizer.from_pretrained(model_dir)
++    print(f'Tokenizer loaded from {model_dir} OK!')
++    return tokenizer, model
++
++
++def artical_embedding(tokenizer, model):
++    # 1. 加载预训练的 SciBERT 模型及其分词器
++    # vocab = tokenizer.get_vocab()
++    # print(vocab)
++    # 2. 预处理文本
++    text = "Here we introduce a new algorithm for sequence alignment."
++    # 使用分词器编码文本
++    inputs = tokenizer(text, return_tensors="pt")
++    print(inputs)
++    # 3. 获取词嵌入
++    # 传入编码后的文本到模型，得到输出
++    outputs = model(**inputs)
++
++    # 输出的 `outputs` 是一个包含多个层的输出的元组，我们通常使用最后一层的隐藏状态
++    last_hidden_states = outputs.last_hidden_state
++
++    # last_hidden_states 的形状是 [batch_size, sequence_length, hidden_size]
++    # 这里 batch_size=1, sequence_length 是输入文本的长度（包括特殊字符）
++
++    print("Shape of output embeddings:", last_hidden_states.shape)
++    print("Output tensor:", last_hidden_states)
++
++    # 4. (可选) 使用输出
++    # 例如，你可以取第一个 token (通常是 [CLS] token) 的嵌入来做文本分类任务
++    # cls_embedding = last_hidden_states[:, 0, :]
++    cls_embedding = last_hidden_states[0, 0, :]
++    print("CLS token embedding:", cls_embedding)
++    return cls_embedding
++
++# django的增删改查
++# 增
++def create_paper():
++    new_paper = Paper(title='New Research', author='John Doe')
++    new_paper.save()
++
++
++# 删一个
++def delete_paper(paper_id):
++    paper = Paper.objects.get(id=paper_id)
++    paper.delete()
++
++
++# 删多个
++def delete_papers_by_author():
++    Paper.objects.filter(author='John Doe').delete()
++
++
++# 改
++def update_paper(paper_id):
++    paper = Paper.objects.get(id=paper_id)
++    paper.title = 'Updated Title'
++    paper.save()
++
++
++def update_papers_by_author():
++    Paper.objects.filter(author='John Doe').update(title='Uniform Title')
++
++
++# 查
++def get_paper_by_id(paper_id):
++    try:
++        paper = Paper.objects.get(id=paper_id)
++        print(paper.title)
++    except Paper.DoesNotExist:
++        print("Paper not found.")
++
++
++# 获取所有 John Doe 的论文
++def get_papers_by_author():
++    papers = Paper.objects.filter(author='John Doe')
++    for paper in papers:
++        print(paper.title)
++
++
++# 获取除了 John Doe 之外的所有论文
++def get_papers_exclude_author():
++    papers = Paper.objects.exclude(author='John Doe')
++    for paper in papers:
++        print(paper.title)
++
++
++def get_all_paper():
++    papers = Paper.objects.all()
++    for paper in papers:
++        keyword = paper.title + '.' + paper.abstract
++        print(paper.title)
++
++
++# get_all_paper()
++t, m = get_sci_bert()
++artical_embedding(t, m)
++# download_sci_bert()
+\ No newline at end of file
