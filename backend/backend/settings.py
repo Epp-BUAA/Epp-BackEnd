@@ -50,7 +50,6 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-SESSION_COOKIE_SECURE = False
 SESSION_COOKIE_SAMESITE = None
 CORS_ALLOW_CREDENTIALS = True
 CSRF_COOKIE_SAMESITE = None
