@@ -154,8 +154,38 @@ def summary_report_list(request):
     data = {'total': len(summary_reports), 'reports': []}
     for report in summary_reports:
         data['reports'].append({
+            "report_id": report.report_id,
             "title": report.title,
             "path": report.report_path,
             "date": report.date.strftime("%Y-%m-%d %H:%M:%S")
         })
     return reply.success(data=data, msg='综述报告列表获取成功')
+
+
+@require_http_methods('DELETE')
+def delete_summary_reports(request):
+    """ 删除综述报告列表 """
+    username = request.session.get('username')
+    user = User.objects.filter(username=username).first()
+    if not user:
+        return reply.fail(msg="请先正确登录")
+
+    params: dict = json.loads(request.body)
+    paper_ids = params.get("paper_ids", None)
+
+    if not paper_ids or len(paper_ids) == 0:
+        # 清空综述报告列表
+        papers_to_remove = user.collected_papers.all()
+    else:
+        # 删除指定报告
+        papers_to_remove = user.collected_papers.filter(paper_id__in=paper_ids)
+
+    print(len(papers_to_remove))
+    # 逐论文处理
+    for paper in papers_to_remove:
+        paper.collect_count -= 1
+        user.collected_papers.remove(paper)
+        user.save()
+        paper.save()
+
+    return reply.success(msg="删除成功")
