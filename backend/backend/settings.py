@@ -50,7 +50,10 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
+SESSION_COOKIE_SAMESITE = None
 CORS_ALLOW_CREDENTIALS = True
+CSRF_COOKIE_SAMESITE = None
+CSRF_COOKIE_SECURE = False
 
 # 配置为true会出问题
 CORS_ALLOWED_ORIGINS = [
