@@ -50,7 +50,13 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-CORS_ALLOW_ALL_ORIGINS = True
+# 配置为true会出问题
+
+CORS_ALLOWED_ORIGINS = [
+    'http://localhost:8080',
+    'http://127.0.0.1:8080',
+]
+
 CORS_ALLOW_METHODS = (
     "DELETE",
     "GET",
@@ -152,31 +158,6 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'resource')
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
-
-CORS_ALLOW_METHODS = (
-    'GET',
-    'POST',
-    'PUT',
-    'PATCH',
-    'DELETE',
-    'OPTIONS'
-)
-CORS_ORIGIN_ALLOW_ALL = True  # 在添加这一行，允许任何域访问
-
-CORS_ALLOW_HEADERS = (
-    'XMLHttpRequest',
-    'X_FILENAME',
-    'accept',
-    'accept-encoding',
-    'authorization',
-    'content-type',
-    'dnt',
-    'origin',
-    'user-agent',
-    'x-csrftoken',
-    'x-requested-with',
-    'Pragma',
-)
 
 USER_AVATARS_PATH = 'resource/uploads/users/avatars'  # 用户头像相对路径
 USER_DOCUMENTS_PATH = 'resource/uploads/users/documents'  # 用户上传文件路径
