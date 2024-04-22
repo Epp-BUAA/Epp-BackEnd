@@ -3,11 +3,14 @@
     api/userInfo/...
 """
 import json
+import os
+from pathlib import Path
 
 from django.views.decorators.http import require_http_methods
+from django.db.models import Q
+from backend.settings import USER_REPORTS_PATH, BASE_DIR
 
 from business.models import User
-from business.models import Paper
 from business.models import SearchRecord
 from business.models import SummaryReport
 from business.utils import reply
@@ -171,21 +174,21 @@ def delete_summary_reports(request):
         return reply.fail(msg="请先正确登录")
 
     params: dict = json.loads(request.body)
-    paper_ids = params.get("paper_ids", None)
-
-    if not paper_ids or len(paper_ids) == 0:
+    report_ids = params.get("report_ids", None)
+    if not report_ids or len(report_ids) == 0:
         # 清空综述报告列表
-        papers_to_remove = user.collected_papers.all()
+        reports_to_remove = SummaryReport.objects.filter(user_id=user)
     else:
         # 删除指定报告
-        papers_to_remove = user.collected_papers.filter(paper_id__in=paper_ids)
+        reports_to_remove = SummaryReport.objects.filter(Q(report_id__in=report_ids) & Q(user_id=user))
 
-    print(len(papers_to_remove))
-    # 逐论文处理
-    for paper in papers_to_remove:
-        paper.collect_count -= 1
-        user.collected_papers.remove(paper)
-        user.save()
-        paper.save()
+    if not os.path.exists(USER_REPORTS_PATH):
+        os.makedirs(USER_REPORTS_PATH)
+    for report in reports_to_remove:
+        # 删除报告文件
+        path = os.path.join(BASE_DIR, report.report_path)
+        if os.path.exists(path):
+            os.remove(path)
+        report.delete()
 
     return reply.success(msg="删除成功")
