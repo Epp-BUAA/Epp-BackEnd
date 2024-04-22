@@ -88,8 +88,9 @@ def delete_collected_papers(request):
         papers_to_remove = user.collected_papers.all()
     else:
         # 删除指定论文
-        papers_to_remove = Paper.objects.filter(paper_id__in=paper_ids)
+        papers_to_remove = user.collected_papers.filter(paper_id__in=paper_ids)
 
+    print(len(papers_to_remove))
     # 逐论文处理
     for paper in papers_to_remove:
         paper.collect_count -= 1
