@@ -50,8 +50,9 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-# 配置为true会出问题
+CORS_ALLOW_CREDENTIALS = True
 
+# 配置为true会出问题
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:8080',
     'http://127.0.0.1:8080',
