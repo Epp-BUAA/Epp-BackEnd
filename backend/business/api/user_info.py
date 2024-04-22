@@ -143,7 +143,7 @@ def delete_search_history(request):
 
 
 @require_http_methods('GET')
-def summary_report(request):
+def summary_report_list(request):
     """ 查看用户生成的综述报告列表 """
     username = request.session.get('username')
     user = User.objects.filter(username=username).first()

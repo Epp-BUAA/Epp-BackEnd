@@ -61,6 +61,7 @@ urlpatterns = [
                   path('api/userInfo/delCollectedPapers', user_info.delete_collected_papers),
                   path("api/userInfo/searchHistory", user_info.search_history_list),
                   path("api/userInfo/delSearchHistory", user_info.delete_search_history),
+                  path("api/userInfo/summaryReports", user_info.summary_report_list),
 
                   # 管理端
                   path("api/manage/users", manage.user_list),
