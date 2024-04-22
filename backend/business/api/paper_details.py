@@ -167,6 +167,8 @@ def comment_paper(request):
                 comment = SecondLevelComment(user_id=user, paper_id=paper, text=text, level1_comment=level1_comment,
                                              reply_comment=reply_comment)
                 comment.save()
+            paper.comment_count += 1
+            paper.save()
             return JsonResponse({'message': '评论成功', 'is_success': True})
         else:
             return JsonResponse({'error': '用户或文献不存在', 'is_success': False}, status=400)
@@ -314,10 +316,35 @@ def get_paper_info(request):
                                  'like_count': paper.like_count,
                                  'collect_count': paper.collect_count,
                                  'download_count': paper.download_count,
+                                 'comment_count': paper.comment_count,
                                  'score': paper.score,
+                                 'score_count': paper.score_count,
                                  'original_url': paper.original_url,
                                  'is_success': True})
         else:
             return JsonResponse({'error': '文献不存在', 'is_success': False}, status=400)
     else:
         return JsonResponse({'error': '请求方法错误', 'is_success': False}, status=400)
+
+
+def get_user_paper_info(request):
+    """
+    获得用户对论文的收藏、点赞、评分情况
+    """
+    if request.method == 'GET':
+        username = request.session.get('username')
+        paper_id = request.GET.get('paper_id')
+        user = User.objects.filter(username=username).first()
+        paper = Paper.objects.filter(paper_id=paper_id).first()
+        if user and paper:
+            liked = user.liked_papers.filter(paper_id=paper_id).first()
+            collected = user.collected_papers.filter(paper_id=paper_id).first()
+            scored = PaperScore.objects.filter(user_id=user, paper_id=paper).first()
+            return JsonResponse({'message': '获取成功',
+                                 'liked': True if liked else False,
+                                 'collected': True if collected else False,
+                                 'scored': True if scored else False,
+                                 'score': scored.score if scored else 0,
+                                 'is_success': True})
+        else:
+            return JsonResponse({'error': '用户或文献不存在', 'is_success': False}, status=400)
