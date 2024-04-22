@@ -12,7 +12,9 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'backend.settings')
 
 django.setup()
 from business.models import Paper
+
 model_dir = "sci_bert"
+
 
 def get_sci_bert():
     model = AutoModel.from_pretrained(model_dir)
@@ -54,6 +56,7 @@ def text_embedding(text, tokenizer, model):
     cls_embedding = last_hidden_states[0, 0, :]
     # print("CLS token embedding:", cls_embedding)
     return cls_embedding
+
 
 # django的增删改查
 # 增
@@ -99,6 +102,7 @@ def get_papers_by_author():
     for paper in papers:
         print(paper.title)
 
+
 # 获取除了 John Doe 之外的所有论文
 def get_papers_exclude_author():
     papers = Paper.objects.exclude(author='John Doe')
@@ -128,6 +132,7 @@ def get_all_paper():
         paper_id = paper.paper_id
         yield keyword, paper_id
 
+
 def insert_paper_info_2_vector_database():
     t, m = get_sci_bert()
     collection = init_milvus("SE2024")
@@ -140,4 +145,3 @@ def insert_paper_info_2_vector_database():
         })
         torch.cuda.empty_cache()
     milvus_insert(collection, infos)
-

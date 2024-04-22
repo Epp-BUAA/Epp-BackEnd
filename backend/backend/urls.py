@@ -54,14 +54,15 @@ urlpatterns = [
                   path("api/removeUploadedPaper", remove_uploaded_paper),
                   path("api/userInfo/documents", document_list),
 
-                  # 个人信息模块
+                  # 个人中心
                   path("api/userInfo/userInfo", user_info.user_info),
                   path("api/userInfo/avatar", user_info.modify_avatar),
                   path("api/userInfo/collectedPapers", user_info.collected_papers_list),
+                  path('api/userInfo/delCollectedPapers', user_info.delete_collected_papers),
                   path("api/userInfo/searchHistory", user_info.search_history_list),
                   path("api/userInfo/delSearchHistory", user_info.delete_search_history),
 
-                  # 数据管理模块
+                  # 管理端
                   path("api/manage/users", manage.user_list),
                   path("api/manage/papers", manage.paper_list),
 

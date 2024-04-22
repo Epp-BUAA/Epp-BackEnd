@@ -1,5 +1,5 @@
 """
-    数据管理模块API
+    管理端功能
     api/manage/...
 """
 from django.views.decorators.http import require_http_methods
