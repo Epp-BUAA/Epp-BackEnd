@@ -26,7 +26,7 @@ def user_info(request):
                                    'username': user.username,
                                    'avatar': user.avatar.url,
                                    'registration_date': user.registration_date.strftime("%Y-%m-%d %H:%M:%S"),
-                                   'collected_papers_cnt': user.collected_papers_list.all().count(),
+                                   'collected_papers_cnt': user.collected_papers.all().count(),
                                    'liked_papers_cnt': user.liked_papers.all().count()},
                              msg='个人信息获取成功')
     else:
