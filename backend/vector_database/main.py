@@ -6,9 +6,10 @@ from flask import Flask, request, jsonify
 app = Flask(__name__)
 CORS(app)
 
-@app.route('/search_paper', methods=['POST'])
+@app.route('/api/search/vectorQuery', methods=['GET'])
 def search_paper():
-    text = request.json.get('text')
+    text = request.args.get('search_content')
+    print(text)
     if text is None:
         return jsonify({"message": "Text is None!", "code": 400}), 400
     # insert_paper_info_2_vector_database()

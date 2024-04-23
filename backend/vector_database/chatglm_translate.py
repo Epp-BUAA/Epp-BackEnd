@@ -1,7 +1,6 @@
 import openai
 
 server_ip = '172.17.62.88'
-url = f'http://{server_ip}:8000'
 
 if __name__ == "__main__":
     openai.api_base = f'http://{server_ip}:8000/v1'
@@ -34,6 +33,7 @@ def translate_zh2en(text):
     )
 
     if response.choices[0].message.role == "assistant":
+
         return response.choices[0].message.content
     else:
         return None

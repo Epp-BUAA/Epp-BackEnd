@@ -46,3 +46,22 @@ class Paper(models.Model):
 
     def __str__(self):
         return self.title
+
+    def to_dict(self):
+        return {
+            'paper_id': self.paper_id,
+            'title': self.title,
+            'authors': self.authors,
+            'abstract': self.abstract,
+            'publication_date': self.publication_date,
+            'journal': self.journal,
+            'citation_count': self.citation_count,
+            'original_url': self.original_url,
+            'read_count': self.read_count,
+            'like_count': self.like_count,
+            'collect_count': self.collect_count,
+            'comment_count': self.comment_count,
+            'download_count': self.download_count,
+            'score': self.score,
+            'score_count': self.score_count
+        }

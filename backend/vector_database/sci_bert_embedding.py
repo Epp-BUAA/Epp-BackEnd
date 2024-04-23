@@ -5,10 +5,10 @@ from transformers import AutoTokenizer, AutoModel
 import torch
 from tqdm import tqdm
 
-from backend.vector_database.chatglm_translate import translate_zh2en
-from backend.vector_database.milvus_test import *
+from vector_database.chatglm_translate import translate_zh2en
+from vector_database.milvus_test import *
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'backend.settings')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'backend.backend.settings')
 
 django.setup()
 from business.models import Paper
