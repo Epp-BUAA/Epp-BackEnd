@@ -7,13 +7,18 @@ import os
 
 from django.views.decorators.http import require_http_methods
 from django.db.models import Q
-from backend.settings import USER_REPORTS_PATH, BASE_DIR
+from backend.settings import USER_REPORTS_PATH, BASE_DIR, USER_READ_CONSERVATION_PATH
 
 from business.models import User
 from business.models import SearchRecord
 from business.models import SummaryReport
 from business.models import FileReading
 from business.utils import reply
+
+if not os.path.exists(USER_READ_CONSERVATION_PATH):
+    os.makedirs(USER_READ_CONSERVATION_PATH)
+if not os.path.exists(USER_REPORTS_PATH):
+    os.makedirs(USER_REPORTS_PATH)
 
 
 @require_http_methods('GET')
@@ -182,8 +187,6 @@ def delete_summary_reports(request):
         # 删除指定报告
         reports_to_remove = SummaryReport.objects.filter(Q(report_id__in=report_ids) & Q(user_id=user))
 
-    if not os.path.exists(USER_REPORTS_PATH):
-        os.makedirs(USER_REPORTS_PATH)
     for report in reports_to_remove:
         # 删除报告文件
         path = os.path.join(BASE_DIR, report.report_path)
@@ -219,4 +222,26 @@ def paper_reading_list(request):
 @require_http_methods('DELETE')
 def delete_paper_reading(request):
     """ 删除论文研读记录 """
-    pass
+    username = request.session.get('username')
+    user = User.objects.filter(username=username).first()
+    if not user:
+        return reply.fail(msg="请先正确登录")
+
+    params: dict = json.loads(request.body)
+    paper_ids = params.get("paper_ids", None)  # 需要删除的研读论文ID
+    if not paper_ids or len(paper_ids) == 0:
+        # 清空论文研读历史
+        reading_list = FileReading.objects.filter(Q(user_id=user) & Q(paper_id__isnull=False))
+    else:
+        # 删除指定研读历史
+        reading_list = SummaryReport.objects.filter(Q(user_id=user) & Q(paper_id__in=paper_ids))
+
+    print(len(reading_list))
+    for reading in reading_list:
+        # 删除研读历史
+        path = os.path.join(BASE_DIR, reading.conservation_path)
+        if os.path.exists(path):
+            os.remove(path)
+        reading.delete()
+
+    return reply.success(msg="删除成功")
