@@ -14,6 +14,7 @@ def login(request):
         data = json.loads(request.body)
         username = data.get('username')
         password = data.get('userpassword')
+        print(username)
         user = User.objects.filter(username=username, password=password).first()
         if user:
             print(user.avatar.url)

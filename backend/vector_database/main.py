@@ -1,6 +1,6 @@
 from flask_cors import CORS
 
-from backend.vector_database.sci_bert_embedding import search_paper_with_query
+from vector_database.sci_bert_embedding import search_paper_with_query
 from flask import Flask, request, jsonify
 
 app = Flask(__name__)
