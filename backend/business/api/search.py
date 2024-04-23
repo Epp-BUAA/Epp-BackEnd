@@ -64,14 +64,42 @@ def vector_query(request):
         3. 使用向量检索从数据库中获取文献信息
         4. 返回文献信息
     """
-
+    content = ''
     data = json.loads(request.body)
     search_content = data.get('search_content')
-    filtered_paper = search_paper_with_query(search_content, limit=20)
+    filtered_paper = search_paper_with_query(search_content, limit=200)
+    start_year = min([paper.publication_date.year for paper in filtered_paper])
+    end_year = max([paper.publication_date.year for paper in filtered_paper])
+    # 发表数量最多的年份
+    most_year = max(set([paper.publication_date.year for paper in filtered_paper]), key=[paper.publication_date.year for paper in filtered_paper].count)
+    cnt = len(set([paper.publication_date.year == most_year for paper in filtered_paper]))
+    content += f'根据您的需求，Epp论文助手检索到了20篇论文，其主要分布在{start_year}到{end_year}之间，其中{most_year}这一年的论文数量最多，有{cnt}篇论文。\n'
+    filtered_paper = filtered_paper[:20]
+    prompt = '你叫Epp论文助手，这是用户检索到的论文，你需要用中文对下面这些论文做一个总结：\n'
+    for paper in filtered_paper:
+        prompt += f'标题为：{paper.title}\n'
+        prompt += f'摘要为：{paper.abstract}\n'
+    response = queryGLM(prompt)
+    content += response
     filtered_paper_list = []
     for paper in filtered_paper:
         filtered_paper_list.append(paper.to_dict())
-    return JsonResponse({"paper_infos": filtered_paper_list}, status=200)
+    username = request.session.get('username')
+    user = User.objects.filter(username=username).first()
+    if user is None:
+        return JsonResponse({'error': '用户不存在'}, status=404)
+    search_record = SearchRecord.objects.get(user_id=user, keyword=search_content)
+    if search_record is None:
+        search_record = SearchRecord.objects.create(user_id=user, keyword=search_content)
+        search_record.date = datetime.datetime.now()
+        search_record.conversation_path = settings.USER_SEARCH_CONSERVATION_PATH + '/' + search_record.search_record_id + '.json'
+        search_record.save()    
+    conversation_path = settings.USER_SEARCH_CONSERVATION_PATH + '/' + search_record.search_record_id + '.json'
+    with open(conversation_path, 'w') as f:
+        history = []
+        history.append({ 'role' : 'assistant', 'content' : content })
+        f.write(json.dumps(history))
+    return JsonResponse({"paper_infos": filtered_paper_list, 'content' : content}, status=200)
 
 @require_http_methods(["POST"])
 def dialog_query(request):

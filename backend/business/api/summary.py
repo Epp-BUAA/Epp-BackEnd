@@ -5,6 +5,10 @@ path : /api/summary/...
 
 from django.http import JsonResponse, HttpRequest
 import openai, json
+from business.models import User, paper
+import threading
+
+lock = threading.Lock()
 
 server_ip = '172.17.62.88'
 url = f'http://{server_ip}:8000'
@@ -40,9 +44,9 @@ def paper_summary(request):
     paper_ids = data.get('paper_ids')
     if type(paper_ids) != list:
         return JsonResponse({"summary": "参数错误"})
-    if len(paper_ids) == 1:
-        # 单篇文献综述生成
-        pass
-    else:
-        # 多篇文献综述生成
-        pass
+    username = request.session.get('username')
+    user = User.objects.get(username=username)
+    from business.models import paper, summary_report
+    import openai
+    openai.api_base = "https://api.sanyue.site/v1"
+    openai.api_key = 'sk-RHa0NhwUiZCPu4vt06A0368e10624e348233D60aB799Bc11'
