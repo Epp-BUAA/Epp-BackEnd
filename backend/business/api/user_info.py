@@ -4,7 +4,6 @@
 """
 import json
 import os
-from pathlib import Path
 
 from django.views.decorators.http import require_http_methods
 from django.db.models import Q
@@ -13,6 +12,7 @@ from backend.settings import USER_REPORTS_PATH, BASE_DIR
 from business.models import User
 from business.models import SearchRecord
 from business.models import SummaryReport
+from business.models import FileReading
 from business.utils import reply
 
 
@@ -192,3 +192,31 @@ def delete_summary_reports(request):
         report.delete()
 
     return reply.success(msg="删除成功")
+
+
+@require_http_methods('GET')
+def paper_reading_list(request):
+    """ 论文研读记录列表 """
+    username = request.session.get('username')
+    user = User.objects.filter(username=username).first()
+    if not user:
+        return reply.fail(msg="请先正确登录")
+
+    reading_list = FileReading.objects.filter(Q(user_id=user) & Q(paper_id__isnull=False))
+    data = {'total': len(reading_list), 'paper_reading_list': []}
+    for reading in reading_list:
+        data['paper_reading_list'].append({
+            "paper_id": reading.paper_id.paper_id,  # 研读论文ID
+            "paper_title": reading.paper_id.title,  # 研读论文标题
+            "paper_score": reading.paper_id.score,  # 研读论文评分
+            # anything to add
+            "title": reading.title,  # 研读标题
+            "date": reading.date.strftime("%Y-%m-%d %H:%M:%S")  # 上次研读时间
+        })
+    return reply.success(data=data, msg='论文研读记录获取成功')
+
+
+@require_http_methods('DELETE')
+def delete_paper_reading(request):
+    """ 删除论文研读记录 """
+    pass

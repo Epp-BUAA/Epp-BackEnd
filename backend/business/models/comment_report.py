@@ -6,6 +6,7 @@ from django.db import models
 from .user import User
 from .comment import FirstLevelComment, SecondLevelComment
 
+
 class CommentReport(models.Model):
     """
     Field:
