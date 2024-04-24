@@ -34,7 +34,7 @@ def upload_paper(request):
             file_ext = os.path.splitext(file.name)[1]
             store_name = file_name + time.strftime('%Y%m%d%H%M%S') + '_%d' % random.randint(0, 100) + file_ext
             file_size = file.size
-            file_path = os.path.join(USER_DOCUMENTS_PATH, store_name)
+            file_path = USER_DOCUMENTS_PATH + '/' + store_name
             with open(file_path, 'wb') as f:
                 for chunk in file.chunks():
                     f.write(chunk)
@@ -65,8 +65,8 @@ def remove_uploaded_paper(request):
             if document.user_id == user:
                 if os.path.exists(document.local_path):
                     os.remove(document.local_path)
-                else:
-                    return JsonResponse({'error': '文件不存在', 'is_success': False}, status=400)
+                # else:
+                #     return JsonResponse({'error': '文件不存在', 'is_success': False}, status=400)
                 document.delete()
                 return JsonResponse({'message': '删除成功', 'is_success': True})
             else:

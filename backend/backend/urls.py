@@ -25,7 +25,7 @@ from business.api.auth import login, signup, testLogin, logout, manager_login, m
 from business.api.paper_details import like_paper, score_paper, collect_paper, report_comment, comment_paper, \
     batch_download_papers, get_paper_info, get_first_comment, get_second_comment, like_comment, \
     get_user_paper_info
-from business.api.update_document import upload_paper, remove_uploaded_paper, document_list
+from business.api.upload_document import upload_paper, remove_uploaded_paper, document_list
 from business.api import user_info, manage
 from business.api.search import vector_query, dialog_query, flush
 
