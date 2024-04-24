@@ -25,6 +25,9 @@ def upload_paper(request):
         file = request.FILES.get('new_paper')
         username = request.session.get('username')
         user = User.objects.filter(username=username).first()
+        print(file)
+        print(username)
+        print(request.session)
         if user and file:
             # 保存文件
             file_name = os.path.splitext(file.name)[0]

@@ -36,7 +36,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     'corsheaders',
-    'business',
+    'business'
 ]
 
 MIDDLEWARE = [
@@ -177,3 +177,6 @@ BATCH_DOWNLOAD_URL = '/resource/database/users/batch_download/'  # 批量下载�
 USER_DOCUMENTS_URL = '/resource/uploads/users/documents/'  # 用户上传文件本地URL
 
 MAX_Similarity = 0.8  # 最大相似度，介于-1和1之间，不确定
+
+# 远程模型部署开放的API接口
+REMOTE_MODEL_BASE_PATH = '172.17.62.88:7861'

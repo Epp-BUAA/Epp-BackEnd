@@ -7,10 +7,6 @@ from tqdm import tqdm
 
 from vector_database.chatglm_translate import translate_zh2en
 from vector_database.milvus_test import *
-
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'backend.backend.settings')
-
-django.setup()
 from business.models import Paper
 
 model_dir = "sci_bert"
@@ -145,3 +141,5 @@ def insert_paper_info_2_vector_database():
         })
         torch.cuda.empty_cache()
     milvus_insert(collection, infos)
+
+insert_paper_info_2_vector_database()

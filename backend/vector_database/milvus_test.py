@@ -3,8 +3,8 @@ import json
 import numpy as np
 from pymilvus import connections, Collection, FieldSchema, CollectionSchema, DataType, MilvusClient, Milvus, utility
 _DIMENSION = 768      # 向量维度
-CLUSTER_ENDPOINT="https://in01-525bfa666c9e9de.tc-ap-beijing.vectordb.zilliz.com.cn:443" # Set your cluster endpoint
-TOKEN="de81326d1e4d53a6b27804821e986536a2b67575f44e068413b6cf2e1da17e4f6d5a73a6d9e0dfd2a6be151e42136e025fdb6b3d" # Set your token
+CLUSTER_ENDPOINT="https://in01-c6fc679ea7fe433.ali-cn-hangzhou.vectordb.zilliz.com.cn:19530" # Set your cluster endpoint
+TOKEN="8c1a9183a4b8acd9d9b2a0fb6e91fb8822dd1bf317ba7200f832849bb29b6c85b4eda3dff78b2a00db2133417ea7690fe8de95f4" # Set your token
 
 def init_milvus(COLLECTION_NAME):
     connections.connect(
@@ -94,7 +94,7 @@ def milvus_search(collection, vector, limit):
     search_params = {"metric_type": "COSINE", "params": {"nprobe": 10}}
     # 向量搜索
     results = collection.search(
-        data=[vector],  # Query, 支持多个Query一起检索
+        data=vector,  # Query, 支持多个Query一起检索
         anns_field="vector",  # 向量检索域
         param=search_params,
         output_fields=["normal_id"],  # 返回域

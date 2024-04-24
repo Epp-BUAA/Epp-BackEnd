@@ -9,7 +9,7 @@ from business.models.search_record import SearchRecord, User
 from django.conf import settings
 import datetime
 
-from vector_database.sci_bert_embedding import search_paper_with_query
+from business.utils.vector_embedding import search_paper_with_query
 
 server_ip = '172.17.62.88'
 url = f'http://{server_ip}:8000'
@@ -67,6 +67,7 @@ def vector_query(request):
     content = ''
     data = json.loads(request.body)
     search_content = data.get('search_content')
+    print(search_content)
     filtered_paper = search_paper_with_query(search_content, limit=200)
     start_year = min([paper.publication_date.year for paper in filtered_paper])
     end_year = max([paper.publication_date.year for paper in filtered_paper])

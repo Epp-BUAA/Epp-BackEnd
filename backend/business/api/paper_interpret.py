@@ -4,12 +4,17 @@ API格式如下：
 api/peper_interpret/...
 '''
 import json, openai
+import os
+
+import requests
 from django.http import JsonResponse, HttpRequest
 from django.views.decorators.http import require_http_methods
-from backend.business.models import paper, file_reading, User
+from business.models import paper, file_reading, User
 import PyPDF2
-from backend.settings import USER_READ_CONSERVATION_PATH, MAX_Similarity
 from PyPDF2 import PdfReader
+from django.conf import settings
+from business.models import UserDocument, FileReading
+from business.utils import reply
 
 
 class Paper(object):
@@ -94,6 +99,154 @@ def queryGLM(msg: str, history=None) -> str:
     return response.choices[0].message.content
 
 
+# 论文研读模块
+
+'''
+    创建文献研读对话：
+        上传一个文件，开启一个研读对话，返回 tmp_kb_id
+    
+    对话记录方式为: [
+        {"role": "user", "content": "我们来玩成语接龙，我先来，生龙活虎"},
+        {"role": "assistant", "content": "虎头虎脑"},
+    ]
+'''
+@require_http_methods(["POST"])
+def create_paper_study(request):
+    request_data = json.loads(request.body)
+    document_id = request_data.get("document_id")
+    username = request.session.get('username')
+    if username is None:
+        username = 'sanyuba'
+    print(username)
+    user = User.objects.filter(username=username).first()
+    if user is None:
+        return reply.fail(msg="请先正确登录")
+
+    # 获取文件
+    document = UserDocument.objects.get(document_id=document_id)
+    # 获取服务器本地的path
+    local_path = document.local_path
+    title = document.title
+    print(url)
+
+    # 创建一段新的filereading对话, 并设置conversation对话路径，创建json文件
+    file_reading = FileReading(user_id=user, document_id=document, title="论文研读",
+                               conversation_path=None)
+    file_reading.save()
+    conversation_path = os.path.join(settings.USER_READ_CONSERVATION_PATH, str(file_reading.id) + ".json")
+    file_reading.conversation_path = conversation_path
+    file_reading.save()
+    if os.path.exists(conversation_path):
+        os.remove(conversation_path)
+    with open(conversation_path, 'w') as f:
+        json.dump({"conversation": []}, f, indent=4)
+
+    # 上传到远端服务器, 创建新的临时知识库
+    upload_temp_docs_url = f'http://{settings.REMOTE_MODEL_BASE_PATH}/knowledge_base/upload_temp_docs'
+    files = {
+        'files': [
+            (title, open(local_path, 'rb')),
+        ]
+    }
+    response = requests.post(upload_temp_docs_url, files=files)
+
+    # 关闭文件，防止内存泄露
+    for file_tuple in files['files']:
+        file_tuple[1].close()
+
+    if response.status_code == 200:
+        tmp_kb_id = response.json()['data']['id']
+        return reply.success({'tmp_kb_id': tmp_kb_id, 'file_reading_id': file_reading.id}, msg="开启文献研读对话成功")
+    else:
+        return reply.fail(msg="连接模型服务器失败")
+
+'''
+    恢复文献研读对话：
+        传入文献研读对话id
+'''
+@require_http_methods(["POST"])
+def restore_paper_study(request):
+    # 鉴权
+    username = request.session.get('username')
+    if username is None:
+        username = 'sanyuba'
+    user = User.objects.filter(username=username).first()
+    if user is None:
+        return reply.fail(msg="请先正确登录")
+
+    # 获取filereading与文件路径，重新上传给服务器开启对话
+    request_data = json.loads(request.body)
+    file_reading_id = request_data.get('file_reading_id')
+    fr = FileReading.objects.get(id=file_reading_id)
+    document = UserDocument.objects.get(document_id=fr.document_id)
+
+    # 上传到远端服务器, 创建新的临时知识库
+    upload_temp_docs_url = f'http://{settings.REMOTE_MODEL_BASE_PATH}/knowledge_base/upload_temp_docs'
+    files = {
+        'files': [
+            (document.title, open(document.local_path, 'rb')),
+        ]
+    }
+    response = requests.post(upload_temp_docs_url, files=files)
+
+    # 关闭文件，防止内存泄露
+    for file_tuple in files['files']:
+        file_tuple[1].close()
+
+    # 返回结果, 需要将历史对话一起返回
+    if response.status_code == 200:
+        tmp_kb_id = response.json()['data']['id']
+
+        # 若删除过历史对话, 则再创建一个文件
+        if not os.path.exists(fr.conversation_path):
+            with open(fr.conversation_path, 'w') as f:
+                json.dump({"conversation": []}, f, indent=4)
+
+        # 读取历史对话记录
+        with open(fr.conversation_path, 'r') as f:
+            conversation_history = json.load(f)  # 使用 json.load() 方法将 JSON 数据转换为字典
+
+        return reply.success({'tmp_kb_id': tmp_kb_id, 'file_reading_id': file_reading_id, 'conversation_history': conversation_history}, msg="恢复文献研读对话成功")
+    else:
+        return reply.fail(msg="连接模型服务器失败")
+
+'''
+    论文研读
+'''
+@require_http_methods(["POST"])
+def do_paper_study(request):
+    # 鉴权
+    username = request.session.get('username')
+    if username is None:
+        username = 'sanyuba'
+    user = User.objects.filter(username=username).first()
+    if user is None:
+        return reply.fail(msg="请先正确登录")
+
+    request_data = json.loads(request.body)
+    tmp_kb_id = request_data.get('tmp_kb_id')  # 临时知识库id
+    query = request_data.get('query')  # 本次询问对话
+    file_reading_id = request_data.get('file_reading_id')
+    fr = FileReading.objects.get(id=file_reading_id)
+
+    # 加载历史记录
+    with open(fr.conversation_path, 'r') as f:
+        conversation_history = json.load(f)
+
+    conversation_history = conversation_history.get('conversation')  # List[Dict]
+
+    # 将历史记录与本次对话发送给服务器, 获取对话结果
+    file_chat_url = f'http://{settings.REMOTE_MODEL_BASE_PATH}/chat/file_chat'
+    data = {
+        "query": query,
+        "knowledge_id": tmp_kb_id,
+        "history": conversation_history,
+        "prompt_name": "with_history"  # 使用历史记录对话模式
+    }
+    response = requests.post(file_chat_url, data=data)
+    print(response)  # 目前不清楚是何种返回 TODO:
+    pass
+
 @require_http_methods(["POST"])
 def paper_interpret(request):
     '''
@@ -122,7 +275,7 @@ def paper_interpret(request):
         if file is None:
             # 新建一个研读记录
             t = get_pdf_title(local_path)
-            file = file_reading(user_id=user, file_local_path=local_path, title=t, conversation_path=None)
+            file = file_reading(user_id=user.user_id, file_local_path=local_path, title=t, conversation_path=None)
             file.conversation_path = f'{USER_READ_CONSERVATION_PATH}/{file.user_id.id}_{file.title}.txt'
             conversation_path = file.conversation_path
             file.save()
