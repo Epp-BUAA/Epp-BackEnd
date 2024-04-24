@@ -249,6 +249,7 @@ def do_paper_study(request):
 
 @require_http_methods(["POST"])
 def paper_interpret(request):
+    # mark:已被放弃
     '''
     本文件唯一的接口，类型为POST
     根据用户的问题，返回一个回答

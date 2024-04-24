@@ -1,7 +1,7 @@
 import openai
 
-openai.api_base = "https://api.sanyue.site/v1"
-openai.api_key = 'sk-RHa0NhwUiZCPu4vt06A0368e10624e348233D60aB799Bc11'
+openai.api_base = "https://api.moonshot.cn/v1"
+openai.api_key = 'sk-yXyyuuFBxj3m8v0baMatcFATSB0XxjJYInNMOr5lPKGDyPAA'
 
 if __name__ == '__main__':
     history = []
@@ -11,11 +11,8 @@ if __name__ == '__main__':
         if user_input.lower() == "exit":
             break
         response = openai.ChatCompletion.create(
-            model="kimi",
+            model="moonshot-v1-8k",
             messages=history,
             stream=False
         )
-        if response.code == 200:
-            print(response.choices[0].message.content)
-        else:
-            print(response)
+        print(response.choices[0].message.content)

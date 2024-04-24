@@ -25,6 +25,7 @@ class UserDocument(models.Model):
     upload_date = models.DateTimeField(auto_now_add=True)
     format = models.CharField(max_length=50)
     size = models.IntegerField()  # 文件大小以字节为单位
+    summary = models.TextField(null=True)
 
     def __str__(self):
         return self.title

@@ -101,7 +101,8 @@ def query_with_vector(search_content: str) -> list[Paper]:
     filtered_paper = []
     for p in ps:
         paper_name = p.get('metadata').get('source')
-        original_url = 'https://arxiv.org/abs/' + paper_name.replace('.pdf', '')
+        original_url = 'https://arxiv.org/abs/' + paper_name.spilt('/')[-1].replace('.pdf', '')
+        print(original_url)
         p = Paper.objects.filter(original_url=original_url).first()
         if p is not None:
             filtered_paper.append(p)
