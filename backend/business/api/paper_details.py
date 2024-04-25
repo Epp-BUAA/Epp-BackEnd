@@ -182,6 +182,9 @@ def get_first_comment(request):
     """
     if request.method == 'GET':
         username = request.session.get('username')
+        user = User.objects.filter(username=username).first()
+        if not user:
+            return JsonResponse({'error': '用户未登录', 'is_success': False}, status=400)
         paper_id = request.GET.get('paper_id')
         comments = FirstLevelComment.objects.filter(paper_id=paper_id)
         data = []
@@ -193,7 +196,7 @@ def get_first_comment(request):
                 'like_count': comment.like_count,
                 'username': comment.user_id.username,
                 'user_image': comment.user_id.avatar.url,
-                'user_liked': comment.liked_by_users.filter(user_id__username=username).first() is not None
+                'user_liked': comment.liked_by_users.filter(username=user).first() is not None
             })
         return JsonResponse({'message': '获取成功', 'comments': data, 'is_success': True})
     else:
@@ -206,6 +209,9 @@ def get_second_comment(request):
     """
     if request.method == 'GET':
         username = request.session.get('username')
+        user = User.objects.filter(username=username).first()
+        if not user:
+            return JsonResponse({'error': '用户未登录', 'is_success': False}, status=400)
         level1_comment_id = request.GET.get('comment1_id')
         comments = SecondLevelComment.objects.filter(level1_comment_id=level1_comment_id)
         data = []
@@ -218,7 +224,7 @@ def get_second_comment(request):
                 'to_username': comment.reply_comment.user_id.username if comment.reply_comment else None,
                 'username': comment.user_id.username,
                 'user_image': comment.user_id.avatar.url,
-                'user_liked': comment.liked_by_users.filter(user_id__username=username).first() is not None
+                'user_liked': comment.liked_by_users.filter(username=user).first() is not None
             })
         return JsonResponse({'message': '获取成功', 'comments': data, 'is_success': True})
     else:
