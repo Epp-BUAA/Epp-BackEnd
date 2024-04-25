@@ -4,15 +4,20 @@
 """
 from django.views.decorators.http import require_http_methods
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
-import json
+from django.core.cache import cache
 
-from business.models import User, Paper
+from business.models import User, Paper, Admin
 from business.utils import reply
 
 
 @require_http_methods('GET')
 def user_list(request):
     """ 检索用户列表 """
+    manager_name = request.session.get('managerName')
+    manager = Admin.objects.filter(admin_name=manager_name).first()
+    if not manager:
+        return reply.fail(msg="请完成管理员身份验证")
+
     keyword = request.GET.get('keyword', default=None)  # 搜索关键字
     page_num = request.GET.get('page_num', default=1)  # 页码
     page_size = request.GET.get('page_size', default=15)  # 每页条目数
@@ -22,7 +27,13 @@ def user_list(request):
     else:
         users = User.objects.all()
 
-    paginator = Paginator(users, page_size)
+    key = 'userPaginator'
+    paginator = cache.get(key)
+    if not paginator:
+        paginator = Paginator(users, page_size)
+        cache.set(key, paginator)
+
+    # 分页逻辑
     try:
         contacts = paginator.page(page_num)
     except PageNotAnInteger:
@@ -47,6 +58,11 @@ def user_list(request):
 @require_http_methods('GET')
 def paper_list(request):
     """ 论文列表 """
+    manager_name = request.session.get('managerName')
+    manager = Admin.objects.filter(admin_name=manager_name).first()
+    if not manager:
+        return reply.fail(msg="请完成管理员身份验证")
+
     keyword = request.GET.get('keyword', default=None)  # 搜索关键字
     page_num = request.GET.get('page_num', default=1)  # 页码
     page_size = request.GET.get('page_size', default=15)  # 每页条目数
@@ -56,7 +72,11 @@ def paper_list(request):
     else:
         papers = Paper.objects.all()
 
-    paginator = Paginator(papers, page_size)
+    key = 'paperPaginator'
+    paginator = cache.get(key)
+    if not paginator:
+        paginator = Paginator(papers, page_size)
+        cache.set(key, paginator)
     try:
         contacts = paginator.page(page_num)
     except PageNotAnInteger:
@@ -64,6 +84,7 @@ def paper_list(request):
     except EmptyPage:
         contacts = paginator.page(paginator.num_pages)
 
+    print(len(contacts))
     data = {"total": len(papers), "papers": list(map(
         lambda paper: {
             "paper_id": paper.paper_id,
@@ -86,6 +107,11 @@ def paper_list(request):
 @require_http_methods('GET')
 def comment_report_list(request):
     """ 举报列表 """
+    manager_name = request.session.get('managerName')
+    manager = Admin.objects.filter(admin_name=manager_name).first()
+    if not manager:
+        return reply.fail(msg="请完成管理员身份验证")
+
     pass
 
 
