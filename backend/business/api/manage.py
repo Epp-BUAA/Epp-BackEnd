@@ -6,13 +6,18 @@ from django.views.decorators.http import require_http_methods
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 import json
 
-from business.models import User, Paper
+from business.models import User, Paper, Admin
 from business.utils import reply
 
 
 @require_http_methods('GET')
 def user_list(request):
     """ 检索用户列表 """
+    manager_name = request.session.get('managerName')
+    manager = Admin.objects.filter(admin_name=manager_name).first()
+    if not manager:
+        return reply.fail(msg="请完成管理员身份验证")
+
     keyword = request.GET.get('keyword', default=None)  # 搜索关键字
     page_num = request.GET.get('page_num', default=1)  # 页码
     page_size = request.GET.get('page_size', default=15)  # 每页条目数
@@ -47,6 +52,11 @@ def user_list(request):
 @require_http_methods('GET')
 def paper_list(request):
     """ 论文列表 """
+    manager_name = request.session.get('managerName')
+    manager = Admin.objects.filter(admin_name=manager_name).first()
+    if not manager:
+        return reply.fail(msg="请完成管理员身份验证")
+
     keyword = request.GET.get('keyword', default=None)  # 搜索关键字
     page_num = request.GET.get('page_num', default=1)  # 页码
     page_size = request.GET.get('page_size', default=15)  # 每页条目数
@@ -86,6 +96,11 @@ def paper_list(request):
 @require_http_methods('GET')
 def comment_report_list(request):
     """ 举报列表 """
+    manager_name = request.session.get('managerName')
+    manager = Admin.objects.filter(admin_name=manager_name).first()
+    if not manager:
+        return reply.fail(msg="请完成管理员身份验证")
+
     pass
 
 
