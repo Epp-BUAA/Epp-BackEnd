@@ -4,7 +4,7 @@
 """
 from django.views.decorators.http import require_http_methods
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
-import json
+from django.core.cache import cache
 
 from business.models import User, Paper, Admin
 from business.utils import reply
@@ -27,7 +27,13 @@ def user_list(request):
     else:
         users = User.objects.all()
 
-    paginator = Paginator(users, page_size)
+    key = 'userPaginator'
+    paginator = cache.get(key)
+    if not paginator:
+        paginator = Paginator(users, page_size)
+        cache.set(key, paginator)
+
+    # 分页逻辑
     try:
         contacts = paginator.page(page_num)
     except PageNotAnInteger:
@@ -66,7 +72,11 @@ def paper_list(request):
     else:
         papers = Paper.objects.all()
 
-    paginator = Paginator(papers, page_size)
+    key = 'paperPaginator'
+    paginator = cache.get(key)
+    if not paginator:
+        paginator = Paginator(papers, page_size)
+        cache.set(key, paginator)
     try:
         contacts = paginator.page(page_num)
     except PageNotAnInteger:
@@ -74,6 +84,7 @@ def paper_list(request):
     except EmptyPage:
         contacts = paginator.page(paginator.num_pages)
 
+    print(len(contacts))
     data = {"total": len(papers), "papers": list(map(
         lambda paper: {
             "paper_id": paper.paper_id,
