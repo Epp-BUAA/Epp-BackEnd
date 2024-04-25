@@ -5,7 +5,7 @@ api/peper_interpret/...
 '''
 import json, openai
 import os
-
+from urllib.parse import quote
 import requests
 from django.http import JsonResponse, HttpRequest
 from django.views.decorators.http import require_http_methods
@@ -15,8 +15,6 @@ from PyPDF2 import PdfReader
 from django.conf import settings
 from business.models import UserDocument, FileReading
 from business.utils import reply
-
-
 class Paper(object):
 
     def __init__(self, paper_path) -> None:
@@ -64,12 +62,12 @@ class Paper(object):
         paper_parts = []
         for i, (position, title) in enumerate(title_positions):
             start_pos = position
-            end_pos = title_positions[i+1][0] if i < len(title_positions) - 1 else len(text_str)
+            end_pos = title_positions[i + 1][0] if i < len(title_positions) - 1 else len(text_str)
             paper_part = text_str[start_pos:end_pos].strip()
             paper_parts.append((title, paper_part))
 
         self.paper_parts = paper_parts
-    
+
 
 def get_pdf_title(pdf_path):
     with open(pdf_path, 'rb') as f:
@@ -77,6 +75,7 @@ def get_pdf_title(pdf_path):
         page = reader.getPage(0)
         title = page.extractText().split('\n')[0]
         return title
+
 
 server_ip = '172.17.62.88'
 url = f'http://{server_ip}:8000'
@@ -110,6 +109,17 @@ def queryGLM(msg: str, history=None) -> str:
         {"role": "assistant", "content": "虎头虎脑"},
     ]
 '''
+
+
+def create_content_disposition(filename):
+    """构建适用于Content-Disposition的filename和filename*参数"""
+    # URL 编码文件名
+    safe_filename = quote(filename)
+    # 构建Content-Disposition头部
+    disposition = f'form-data; name="file"; filename="{filename}"; filename*=UTF-8\'\'{safe_filename}'
+    return disposition
+
+
 @require_http_methods(["POST"])
 def create_paper_study(request):
     request_data = json.loads(request.body)
@@ -122,10 +132,11 @@ def create_paper_study(request):
     if user is None:
         return reply.fail(msg="请先正确登录")
 
-    # 获取文件
+    # 获取文件, 后续支持直接对8k篇论文进行检索
     document = UserDocument.objects.get(document_id=document_id)
     # 获取服务器本地的path
     local_path = document.local_path
+    content_type = document.format
     title = document.title
     print(url)
 
@@ -143,16 +154,27 @@ def create_paper_study(request):
 
     # 上传到远端服务器, 创建新的临时知识库
     upload_temp_docs_url = f'http://{settings.REMOTE_MODEL_BASE_PATH}/knowledge_base/upload_temp_docs'
-    files = {
-        'files': [
-            (title, open(local_path, 'rb')),
-        ]
-    }
-    response = requests.post(upload_temp_docs_url, files=files)
+    payload = {}
 
+    # 后续可支持多文件，多类型
+    with open(local_path, 'rb') as f:
+        print(f.__sizeof__())
+
+    print(create_content_disposition(title + content_type))
+    files = [
+        ('files', (title + content_type, open(local_path, 'rb'),
+                   'application/vnd.openxmlformats-officedocument.presentationml.presentation'))
+    ]
+
+    # headers = {
+    #     'Content-Type': 'multipart/form-data'
+    # }
+
+    response = requests.request("POST", upload_temp_docs_url, files=files)
+    print(response)
     # 关闭文件，防止内存泄露
-    for file_tuple in files['files']:
-        file_tuple[1].close()
+    for k, v in files:
+        v[1].close()
 
     if response.status_code == 200:
         tmp_kb_id = response.json()['data']['id']
@@ -160,10 +182,13 @@ def create_paper_study(request):
     else:
         return reply.fail(msg="连接模型服务器失败")
 
+
 '''
     恢复文献研读对话：
         传入文献研读对话id
 '''
+
+
 @require_http_methods(["POST"])
 def restore_paper_study(request):
     # 鉴权
@@ -206,13 +231,18 @@ def restore_paper_study(request):
         with open(fr.conversation_path, 'r') as f:
             conversation_history = json.load(f)  # 使用 json.load() 方法将 JSON 数据转换为字典
 
-        return reply.success({'tmp_kb_id': tmp_kb_id, 'file_reading_id': file_reading_id, 'conversation_history': conversation_history}, msg="恢复文献研读对话成功")
+        return reply.success(
+            {'tmp_kb_id': tmp_kb_id, 'file_reading_id': file_reading_id, 'conversation_history': conversation_history},
+            msg="恢复文献研读对话成功")
     else:
         return reply.fail(msg="连接模型服务器失败")
+
 
 '''
     论文研读
 '''
+
+
 @require_http_methods(["POST"])
 def do_paper_study(request):
     # 鉴权
@@ -234,18 +264,60 @@ def do_paper_study(request):
         conversation_history = json.load(f)
 
     conversation_history = conversation_history.get('conversation')  # List[Dict]
-
+    print(conversation_history)
     # 将历史记录与本次对话发送给服务器, 获取对话结果
     file_chat_url = f'http://{settings.REMOTE_MODEL_BASE_PATH}/chat/file_chat'
-    data = {
-        "query": query,
-        "knowledge_id": tmp_kb_id,
-        "history": conversation_history,
-        "prompt_name": "with_history"  # 使用历史记录对话模式
-    }
-    response = requests.post(file_chat_url, data=data)
-    print(response)  # 目前不清楚是何种返回 TODO:
-    pass
+    if len(conversation_history) != 0:
+        # 有问题
+        payload = json.dumps({
+            "query": query,
+            "knowledge_id": tmp_kb_id,
+            "prompt_name": "with_history"  # 使用历史记录对话模式
+        })
+        headers = {
+            'Content-Type': 'application/json'
+        }
+    else:
+        payload = json.dumps({
+            "query": query,
+            "knowledge_id": tmp_kb_id,
+            "prompt_name": "default"  # 使用历史记录对话模式
+        })
+        print(payload)
+        headers = {
+            'Content-Type': 'application/json'
+        }
+    response = requests.request("POST", file_chat_url, data=payload, headers=headers, stream=True)
+    client_id = None
+    ai_reply = ""
+    origin_docs = []
+    try:
+        for line in response.iter_lines():
+
+            if line:
+                decoded_line = line.decode('utf-8')
+
+                if decoded_line.startswith('id'):
+                    client_id = decoded_line.replace('id: ', '')
+                elif decoded_line.startswith('data'):
+                    data = decoded_line.replace('data: ', '')
+                    data = json.loads(data)
+                    print(data["answer"])
+                    print(data["docs"])
+                    ai_reply += data["answer"]
+                    for doc in data["docs"]:
+                        doc = str(doc).replace("\n", " ")
+                        origin_docs.append(doc)
+
+                    # print(f"Received data (Client ID {client_id}): {data}")
+                elif decoded_line.startswith('event'):
+                    event_type = decoded_line.replace('event: ', '')
+                    # print(f"Event type: {event_type}")
+    finally:
+        response.close()
+    # print(response)  # 目前不清楚是何种返回 TODO:
+    return reply.success({"ai_reply": ai_reply, "docs": origin_docs}, msg="成功")
+
 
 @require_http_methods(["POST"])
 def paper_interpret(request):
