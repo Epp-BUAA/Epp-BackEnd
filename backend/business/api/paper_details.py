@@ -8,7 +8,7 @@ import zipfile
 import os
 from django.http import JsonResponse
 from business.models import User, Paper, PaperScore, CommentReport, FirstLevelComment, SecondLevelComment, UserDocument
-from business.utils.downloadPaper import downloadPaper
+from business.utils.download_paper import downloadPaper
 from backend.settings import BATCH_DOWNLOAD_PATH, BATCH_DOWNLOAD_URL, USER_DOCUMENTS_PATH, USER_DOCUMENTS_URL
 
 if not os.path.exists(BATCH_DOWNLOAD_PATH):

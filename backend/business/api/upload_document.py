@@ -89,8 +89,10 @@ def document_list(request):
     documents = UserDocument.objects.filter(user_id=user).order_by('-upload_date')
     data = {'total': len(documents), 'documents': []}
     for document in documents:
+        url = USER_DOCUMENTS_URL + os.path.basename(document.local_path)
         data['documents'].append({
             "document_id": document.document_id,
+            "document_url": url,
             "title": document.title,
             "format": document.format,
             "size": document.size,
