@@ -19,7 +19,7 @@ from django.urls import path
 from django.conf import settings
 from django.conf.urls.static import static
 
-from business.api.paper_interpret import create_paper_study, restore_paper_study, do_paper_study
+from business.api.paper_interpret import async_test, create_paper_study, restore_paper_study, do_paper_study
 from business.api.vector_database import insert_vector_database
 from business.api.auth import login, signup, testLogin, logout, manager_login, manager_logout
 from business.api.paper_details import like_paper, score_paper, collect_paper, report_comment, comment_paper, \
@@ -83,7 +83,10 @@ urlpatterns = [
                   path("insert_vector_database", insert_vector_database),
 
                   # 文献研读模块
-                  path("api/study/create_paper_study", create_paper_study),
-                  path("api/study/restore_paper_study", restore_paper_study),
-                  path("api/study/do_paper_study", do_paper_study)
+                  path("api/study/createPaperStudy", create_paper_study),
+                  path("api/study/restorePaperStudy", restore_paper_study),
+                  path("api/study/doPaperStudy", do_paper_study),
+
+                  # 异步处理测试
+                  path("api/study/async", async_test),
               ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
