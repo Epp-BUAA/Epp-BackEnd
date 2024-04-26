@@ -6,105 +6,133 @@ path : /api/summary/...
 from django.http import JsonResponse, HttpRequest
 import openai, json
 from business.models import User, paper
-import threading
+import threading, requests
+from utils.reply import fail, success
+from django.conf import settings
+from business.models import User, UserDocument, Paper
+from django.views.decorators.http import require_http_methods
+import os
 
-lock = threading.Lock()
 
-openai.api_base = "https://api.moonshot.cn/v1"
-openai.api_key = 'sk-yXyyuuFBxj3m8v0baMatcFATSB0XxjJYInNMOr5lPKGDyPAA'
+##################################新建一个临时知识库，多问几次，然后通过一个模板生成综述#######################################
 
-def query_Kimi(user_input, history=None):
-    if history is None:
-        history.append({"role": "user", "content": user_input})
+###################综述生成##########################
+
+def quertGLM(msg: str, history=None) -> str:
+    '''
+    对chatGLM2-6B发出一次单纯的询问
+    '''
+    openai.api_base = f'http://{settings.REMOTE_MODEL_BASE_PATH}/v1'
+    openai.api_key = "none"
+    history.append({"role": "user", "content": msg})
     response = openai.ChatCompletion.create(
-        model="moonshot-v1-8k",
+        model="chatglm3-6b",
         messages=history,
         stream=False
     )
-    print(response.choices[0].message.content)
-    if history is not None:
-        history.append({"role": "assistant", "content": response.choices[0].message.content})
+    print("ChatGLM3-6B：", response.choices[0].message.content)
+    history.append({"role": "assistant", "content": response.choices[0].message.content})
     return response.choices[0].message.content
     
-def paper_summary(request):
+@require_http_methods(['POST'])
+def generate_summary(request):
     '''
-    本文件唯一的接口，类型为POST
-    根据用户的问题，返回一个回答
-    思路如下：
-        1. 根据session获得用户的username, request中包含paper_ids
-        2. 直接生成综述
-    return : {
-        summary: str
-    }
+    生成综述
     '''
-    data = json.loads(request.body)
-    paper_ids = data.get('paper_ids')
-    if type(paper_ids) != list:
-        return JsonResponse({"summary": "参数错误"})
-    username = request.session.get('username')
-    user = User.objects.get(username=username)
-    from business.models import paper, summary_report
-    import openai
-    openai.api_base = "https://api.sanyue.site/v1"
-    openai.api_key = 'sk-RHa0NhwUiZCPu4vt06A0368e10624e348233D60aB799Bc11'
+    try:
+        data = json.loads(request.body)
+        paper_ids = data.get('paper_id_list')
+        username = request.session.get('username')
+        from business.models import SummaryReport, User
+        user = User.objects.filter(username=username).first()
+        report = SummaryReport.objects.create(user_id=user)
+        report.title = '综述'+str(report.report_id)
+        p = settings.USER_REPORTS_PATH + '/' + str(report.report_id) + '.md'
+        report.local_path = p
+        report.save()
+        # download_dir = settings.CACHE_PATH + '/' + str(report.report_id)
+        # os.makedirs(download_dir)
+        # # 先下载文章
+        # for paper_id in paper_ids:
+        #     download_paper(paper_id, download_dir)
+        # # 创建临时知识库
+        # tmp_kb_id = create_tmp_knowledge_base(download_dir)
+        # if tmp_kb_id is None:
+        #     return fail('创建临时知识库失败')
+        # 开始生成综述
+        # keywords = ['现状', '问题', '方法', '结果', '结论', '展望']
+        introduction = '' # 引言
+        paper_content = [] # 每个论文一个标题，然后是内容
+        conclusion = '' # 结论
+        paper_conclusions = [] 
+        paper_themes = []
+        paper_situations = []
+        # 先把每篇论文需要的信息生成好了
+        for paper_id in paper_ids:
+            p = Paper.objects.filter(document_id=paper_id).first()
+            content_prompt = '将这篇论文的摘要以第三人称的方式复述一遍，摘要如下：\n' + p.abstract
+            paper_content.append(quertGLM(content_prompt, []))
+            content_prompt = '将这篇论文的题目转化为中文：\n' + p.title
+            paper_themes.append(quertGLM(content_prompt, []))
+            content_prompt = '将这篇论文的现状部分以第三人称的方式复述一遍：\n' + p.abstract
+            paper_situations.append(quertGLM(content_prompt, []))
+            content_prompt = '将这篇论文的结论和展望部分以第三人称的方式复述一遍：\n' + p.abstract
+            paper_conclusions.append(quertGLM(content_prompt, []))
+        # 生成引言
+        introduction_prompt = '请根据以下信息生成综述的引言：\n'
+        for i in range(len(paper_ids)):
+            introduction_prompt += '第' + str(i+1) + '篇论文的题目是：' + paper_themes[i] + '\n'
+            introduction_prompt += '第' + str(i+1) + '篇论文的现状部分是：' + paper_situations[i] + '\n'
+        introduction = quertGLM(introduction_prompt, [])
+        # 生成结论
+        conclusion_prompt = '请根据以下信息生成综述的结论：\n'
+        for i in range(len(paper_ids)):
+            conclusion_prompt += '第' + str(i+1) + '篇论文的题目是：' + paper_themes[i] + '\n'
+            conclusion_prompt += '第' + str(i+1) + '篇论文的结论部分是：' + paper_conclusions[i] + '\n'
+        conclusion = quertGLM(conclusion_prompt, [])
+        
+        # 生成综述
+        summary = '# 引言\n' + introduction + '\n'
+        summary += '# 正文\n'
+        for i in range(len(paper_ids)):
+            summary += '## ' + paper_themes[i] + '\n'
+            summary += paper_content[i] + '\n'
+        summary += '# 结论\n' + conclusion + '\n'
+        with open(report.report_path, 'w') as f:
+            f.write(summary)
+        
+        return JsonResponse({'message': "综述生成成功"}, status=200)
+    except Exception as e:
+        print(e)
+        return JsonResponse({'message': "综述生成失败"}, status=400)
+    
+    
+##################################单篇摘要生成##############################
 
+def create_tmp_knowledge_base(dir : str) -> str:
+    '''
+    将cache中的所有文件全部上传到远端服务器，创建一个临时知识库
+    '''
+    # 上传到远端服务器, 创建新的临时知识库
+    upload_temp_docs_url = f'http://{settings.REMOTE_MODEL_BASE_PATH}/knowledge_base/upload_temp_docs'
+    payload = {}
 
-def single_paper_summary(request):
-    '''
-    单篇摘要生成，存到user_document表中
-    api/study/singlepapersummary
-    '''
-    data = json.loads(request.body)
-    document_id = data.get('document_id')
-    username = request.session.get('username')
-    user = User.objects.get(username=username)
-    from business.models import UserDocument
-    document = UserDocument.objects.get(document_id=document_id)
-    if document is None:
-        return JsonResponse({"summary": "参数错误"})
-    if document.summary is not None:
-        return JsonResponse({"summary": document.summary})
+    files = []
+    import os
+    # 遍历每个文件
+    for root, dirs, files in os.walk(dir):
+        for file in files:
+            file_path = os.path.join(root, file)
+            files.append(('files', (file, open(file_path, 'rb'), 
+                                    'application/vnd.openxmlformats-officedocument.presentationml.presentation')))
+    response = requests.request("POST", upload_temp_docs_url, files=files)
+    print(response)
+    # 关闭文件，防止内存泄露
+    for k, v in files:
+        v[1].close()
+
+    if response.status_code == 200:
+        tmp_kb_id = response.json()['data']['id']
+        return tmp_kb_id
     else:
-        from pathlib import Path
-        from openai import OpenAI
-        client = OpenAI(
-            api_key="MOONSHOT_API_KEY",
-            base_url="https://api.moonshot.cn/v1",
-        )
-        file_object = client.files.create(file=Path(document.local_path), purpose="file-extract")
-        
-        # 获取结果
-        # file_content = client.files.retrieve_content(file_id=file_object.id)
-        # 注意，之前 retrieve_content api 在最新版本标记了 warning, 可以用下面这行代替
-        # 如果是旧版本，可以用 retrieve_content
-        file_content = client.files.content(file_id=file_object.id).text
-        
-        # 把它放进请求中
-        messages=[
-            {
-                "role": "system",
-                "content": "你是 Kimi，由 Moonshot AI 提供的人工智能助手，你更擅长中文和英文的对话。你会为用户提供安全，有帮助，准确的回答。同时，你会拒绝一切涉及恐怖主义，种族歧视，黄色暴力等问题的回答。Moonshot AI 为专有名词，不可翻译成其他语言。",
-            },
-            {
-                "role": "system",
-                "content": file_content,
-            },
-            {"role": "user", "content": f'请简单介绍 {document.title}.pdf 讲了啥'},
-        ]
-        
-        # 然后调用 chat-completion, 获取 kimi 的回答
-        completion = client.chat.completions.create(
-            model="moonshot-v1-32k",
-            messages=messages,
-            temperature=0.3,
-        )
-        
-        print(completion.choices[0].message)
-        summary = completion.choices[0].message
-        # 删除文件
-        client.files.delete(file_id=file_object.id)
-        document.summary = summary
-        document.save()
-        return JsonResponse({"summary": summary})
-    
-    
+        return None
