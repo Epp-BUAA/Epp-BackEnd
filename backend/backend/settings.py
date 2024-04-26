@@ -185,3 +185,9 @@ MAX_Similarity = 0.8  # 最大相似度，介于-1和1之间，不确定
 REMOTE_MODEL_BASE_PATH = '172.17.62.88:7861'
 # 使用openai流式接口调用glm3大模型，不附带知识库
 REMOTE_CHATCHAT_GLM3_OPENAI_PATH = '172.17.62.88:20005'
+
+# 语义检索相关
+VECTOR_DIM = 1024
+LOCAL_VECTOR_DATABASE_PATH = 'resource/vector_database_for_search/'
+LOCAL_FAISS_NAME = "paper_index.faiss"
+LOCAL_METADATA_NAME = "paper_metadata.pkl"

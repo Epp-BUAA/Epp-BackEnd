@@ -4,6 +4,9 @@ API格式如下：
 api/serach/...
 '''
 import json, openai
+import os
+
+from django.db.models import Q
 from django.http import JsonResponse, HttpRequest
 from business.models.search_record import SearchRecord, User
 from django.conf import settings
@@ -11,11 +14,11 @@ import datetime
 import numpy as np
 
 import requests
-from business.utils.vector_embedding import search_paper_with_query
+from business.utils import reply
+from business.utils.paper_vdb_init import get_filtered_paper
 
 
-
-def queryGLM(msg : str, history=None) -> str:
+def queryGLM(msg: str, history=None) -> str:
     '''
     对chatGLM3-6B发出一次单纯的询问
     '''
@@ -30,53 +33,21 @@ def queryGLM(msg : str, history=None) -> str:
     print("ChatGLM3-6B：", response.choices[0].message.content)
     history.append({"role": "assistant", "content": response.choices[0].message.content})
     return response.choices[0].message.content
-    
+
 
 from django.views.decorators.http import require_http_methods
 from business.models.paper import Paper
 
 
-def query_with_vector(search_content: str) -> list[Paper]: 
+def query_with_vector(search_content: str) -> list[Paper]:
     '''
     本函数用于向量化检索
     '''
-    # 先把文本向量化，调用REMOTE_MODEL_BASE_PATH的接口 才发现不用向量化。。。
-    # 具体接口为：http://{REMOTE_MODEL_BASE_PATH}/other/embed_texts
-    # file_embed_url = f'http://{settings.REMOTE_MODEL_BASE_PATH}/other/embed_texts'
-    # '''
-    # {
-    #     texts:[
-    #         string,
-    #     ]
-    # }
-    # '''
-    # # 将文本转化为英文并且将其spilt
-    # english_search_content = queryGLM("请把这段话翻译为英文：" + search_content)
-    # ts = english_search_content.split(' ')
-    # data = {
-    #     'texts': ts
-    # }
-    # response = requests.post(file_embed_url, json=data)
-    # '''
-    # 返回的格式应该为：
-    # {
-    #     code: 200,
-    #     msg: 'success',
-    #     data:[
-    #         [
-    #             float, // 向量的每个维度
-    #         ]
-    #     ]
-    # }
-    # '''
-    # vector = response.json().get('data')
-    # print(vector)
-    # 调用向量化检索的接口
     file_query_url = f'http://{settings.REMOTE_MODEL_BASE_PATH}/knowledge_base/search_docs'
     english_search_content = queryGLM("请把这段话翻译为英文：" + search_content)
     data = {
-        'query' : english_search_content,
-        'knowledge_base_name': 'ZJY' #这是最大的知识库
+        'query': english_search_content,
+        'knowledge_base_name': 'ZJY'  # 这是最大的知识库
     }
     response = requests.post(file_query_url, json=data)
     ps = response.json().get('data')
@@ -107,9 +78,23 @@ def query_with_vector(search_content: str) -> list[Paper]:
         if p is not None:
             filtered_paper.append(p)
     return filtered_paper
-    
 
-@require_http_methods(["GET"])
+
+def search_papers_by_keywords(keywords):
+    # 初始化查询条件，此时没有任何条件，查询将返回所有Paper对象
+    query = Q()
+
+    # 为每个关键词添加搜索条件
+    for keyword in keywords:
+        query |= Q(title__icontains=keyword) | Q(abstruct__icontains=keyword)
+
+    # 使用累积的查询条件执行查询
+    result = Paper.objects.filter(query)
+
+    return result
+
+# TODO: 4.27完成
+@require_http_methods(["POST"])
 def vector_query(request):
     """
     本函数用于处理向量化检索的请求
@@ -140,45 +125,88 @@ def vector_query(request):
         3. 使用向量检索从数据库中获取文献信息
         4. 返回文献信息
     """
-    content = ''
+    # 鉴权
+    username = request.session.get('username')
+    if username is None:
+        username = 'sanyuba'
+    user = User.objects.filter(username=username).first()
+    if user is None:
+        return reply.fail(msg="请先正确登录")
+
     data = json.loads(request.body)
     search_content = data.get('search_content')
-    print(search_content)
+    content = ""
     # filtered_paper = search_paper_with_query(search_content, limit=200) 从这里改为使用服务器的查询接口
-    filtered_paper = query_with_vector(search_content)[:20] # 这是新版的调用服务器模型的接口
-    
-    start_year = min([paper.publication_date.year for paper in filtered_paper])
-    end_year = max([paper.publication_date.year for paper in filtered_paper])
-    # 发表数量最多的年份
-    most_year = max(set([paper.publication_date.year for paper in filtered_paper]), key=[paper.publication_date.year for paper in filtered_paper].count)
-    cnt = len(set([paper.publication_date.year == most_year for paper in filtered_paper]))
+    filtered_paper = get_filtered_paper(search_content, 100, threshold=0.2)  # 这是新版的调用服务器模型的接口
+    print(filtered_paper[0])
+    # start_year = min([paper.publication_date.year for paper in filtered_paper])
+    # end_year = max([paper.publication_date.year for paper in filtered_paper])
+    # # 发表数量最多的年份
+    # most_year = max(set([paper.publication_date.year for paper in filtered_paper]),
+    #                 key=[paper.publication_date.year for paper in filtered_paper].count)
+    # cnt = len(set([paper.publication_date.year == most_year for paper in filtered_paper]))
+    start_year = 2017
+    end_year = 2020
+    most_year = 2019
+    cnt = 10
     content += f'根据您的需求，Epp论文助手检索到了20篇论文，其主要分布在{start_year}到{end_year}之间，其中{most_year}这一年的论文数量最多，有{cnt}篇论文。\n'
-    filtered_paper = filtered_paper[:20]
+
+    # 创建检索记录, 对话文件并保存
+    search_record = SearchRecord(user_id=user, keyword=search_content, conversation_path=None)
+    search_record.save()
+    conversation_path = os.path.join(settings.USER_SEARCH_CONSERVATION_PATH, str(search_record.search_record_id) + '.json')
+    if os.path.exists(conversation_path):
+        os.remove(conversation_path)
+    with open(conversation_path, 'w') as f:
+        json.dump({"conversation": []}, f, indent=4)
+    search_record.conversation_path = conversation_path
+    search_record.save()
+
+    # 进行二次关键词检索
+    # 首先获取关键词, 同样使用chatglm6b的普通对话
+    chat_chat_url = f'http://{settings.REMOTE_MODEL_BASE_PATH}/chat/chat'
+    headers = {
+        'Content-Type': 'application/json'
+    }
+    payload = json.dumps({
+        "query": search_content,
+        "prompt_name": "keyword"
+    })
+    response = requests.request("POST", chat_chat_url, data=payload, headers=headers, stream=False)
+    keyword = ""
+    # print(response)
+    for line in response.iter_lines():
+        if line:
+            decoded_line = line.decode('utf-8')
+            print(decoded_line)
+            if decoded_line.startswith('data'):
+                data = json.loads(decoded_line.replace('data: ', ''))
+                keyword += data['text']
+
+    return reply.success({"keyword": keyword, 'papers': filtered_paper})
+
     prompt = '你叫Epp论文助手，这是用户检索到的论文，你需要用中文对下面这些论文做一个总结：\n'
     for paper in filtered_paper:
         prompt += f'标题为：{paper.title}\n'
         prompt += f'摘要为：{paper.abstract}\n'
     response = queryGLM(prompt)
     content += response
-    filtered_paper_list = []
-    for paper in filtered_paper:
-        filtered_paper_list.append(paper.to_dict())
-    username = request.session.get('username')
-    user = User.objects.filter(username=username).first()
-    if user is None:
-        return JsonResponse({'error': '用户不存在'}, status=404)
+
+
+    # 逻辑有待清晰, TODO: 4.27完成
     search_record = SearchRecord.objects.get(user_id=user, keyword=search_content)
     if search_record is None:
         search_record = SearchRecord.objects.create(user_id=user, keyword=search_content)
         search_record.date = datetime.datetime.now()
         search_record.conversation_path = settings.USER_SEARCH_CONSERVATION_PATH + '/' + search_record.search_record_id + '.json'
-        search_record.save()    
+        search_record.save()
     conversation_path = settings.USER_SEARCH_CONSERVATION_PATH + '/' + search_record.search_record_id + '.json'
     with open(conversation_path, 'w') as f:
         history = []
-        history.append({ 'role' : 'assistant', 'content' : content })
+        history.append({'role': 'assistant', 'content': content})
         f.write(json.dumps(history))
-    return JsonResponse({"paper_infos": filtered_paper_list, 'content' : content}, status=200)
+    return JsonResponse({"paper_infos": filtered_paper, 'content': content}, status=200)
+
 
 @require_http_methods(["POST"])
 def dialog_query(request):
@@ -241,19 +269,19 @@ def dialog_query(request):
         search_record.date = datetime.datetime.now()
         search_record.save()
     # 历史记录的json文件名称和search_record_id一致
-    conversation_path = settings.USER_SEARCH_CONSERVATION_PATH + '/' + search_record.search_record_id + '.json'    
+    conversation_path = settings.USER_SEARCH_CONSERVATION_PATH + '/' + search_record.search_record_id + '.json'
     history = []
     if os.path.exists(conversation_path):
         c = json.loads(open(conversation_path).read())
         history = c
-    history.append({ 'role' : 'user', 'content' : message })
+    history.append({'role': 'user', 'content': message})
     # 先判断下是不是要查询论文
     prompt = '想象你是一个科研助手，帮我判断一下这段用户的需求是不是要求查找一些论文，你的回答只能是\"yes\"或者\"no\"，他的需求是：\n' + message + '\n'
     response_type = queryGLM(prompt)
     papers = []
     dialog_type = ''
     content = ''
-    if 'yes' in response_type: # 担心可能有句号等等
+    if 'yes' in response_type:  # 担心可能有句号等等
         # 查询论文，TODO:接入向量化检索
         filtered_paper = query_with_vector(message)
         dialog_type = 'query'
@@ -266,7 +294,7 @@ def dialog_query(request):
             # TODO: 这里需要把papers的信息整理到content里面
             content += f'标题为：{papers[i].title}\n'
             content += f'摘要为：{papers[i].abstract}\n'
-        history.append({ 'role' : 'assistant', 'content' : content })
+        history.append({'role': 'assistant', 'content': content})
     else:
         # 对话，保存3轮最多了，担心吃不下
         print(history.copy()[-5:])
@@ -274,15 +302,16 @@ def dialog_query(request):
         dialog_type = 'dialog'
         papers = []
         content = response
-        history.append({ 'role' : 'assistant', 'content' : content })
+        history.append({'role': 'assistant', 'content': content})
     with open(conversation_path, 'w') as f:
         f.write(json.dumps(history))
     res = {
-        'dialog_type' : dialog_type,
-        'papers' : papers,
-        'content' : content
+        'dialog_type': dialog_type,
+        'papers': papers,
+        'content': content
     }
     return JsonResponse(res, status=200)
+
 
 @require_http_methods(["DELETE"])
 def flush(request):

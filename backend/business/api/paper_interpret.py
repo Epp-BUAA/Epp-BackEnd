@@ -292,7 +292,6 @@ async def async_test(request):
     引入多线程执行
 '''
 
-
 @require_http_methods(["POST"])
 def do_paper_study(request):
     # 鉴权
