@@ -17,6 +17,7 @@ from PyPDF2 import PdfReader
 from django.conf import settings
 from business.models import UserDocument, FileReading, Paper, User
 from business.utils import reply
+
 from business.utils.download_paper import downloadPaper
 
 
@@ -194,7 +195,7 @@ def create_paper_study(request):
     # }
 
     response = requests.request("POST", upload_temp_docs_url, files=files)
-    print(response)
+
     # 关闭文件，防止内存泄露
     for k, v in files:
         v[1].close()
@@ -208,10 +209,8 @@ def create_paper_study(request):
 
 '''
     恢复文献研读对话：
-        传入文献研读对话id
+        传入文献研读对话id即可
 '''
-
-
 @require_http_methods(["POST"])
 def restore_paper_study(request):
     # 鉴权
@@ -240,7 +239,6 @@ def restore_paper_study(request):
     if local_path is None or title is None:
         return reply.fail(msg="服务器内无本地文件, 请检查")
 
-    # 上传到远端服务器, 创建新的临时知识库
     # 上传到远端服务器, 创建新的临时知识库
     upload_temp_docs_url = f'http://{settings.REMOTE_MODEL_BASE_PATH}/knowledge_base/upload_temp_docs'
     files = [
@@ -276,9 +274,12 @@ def restore_paper_study(request):
     else:
         return reply.fail(msg="连接模型服务器失败")
 
+
 '''
     异步测试
 '''
+
+
 @require_http_methods(["POST"])
 async def async_test(request):
     print("Task started.")
@@ -286,11 +287,12 @@ async def async_test(request):
     print("Task completed.")
 
 
-
 '''
     论文研读 Key! 此时AI回复为非流式输出, 可能浪费时间, alpha版本先这样
     引入多线程执行
 '''
+
+
 @require_http_methods(["POST"])
 def do_paper_study(request):
     # 鉴权
@@ -386,43 +388,51 @@ def do_paper_study(request):
         json.dump({"conversation": conversation_history}, f, indent=4)
     return reply.success({"ai_reply": ai_reply, "docs": origin_docs, "prob_question": question_reply}, msg="成功")
 
-
-@require_http_methods(["POST"])
-def paper_interpret(request):
-    # mark:已被放弃
-    '''
-    本文件唯一的接口，类型为POST
-    根据用户的问题，返回一个回答
-    思路如下：
-        1. 根据session获得用户的username, request中包含local_path和question
-        2. 根据paper_id得到向量库中各段落的向量，根据question得到问题的向量，选择最相似的段落
-        3. 将段落输入到ChatGLM2-6B中，得到回答，进行总结，给出一个本文中的回答
-        4. 查找与其相似度最高的几篇文章的段落，相似度最高的5个段落，对每段给出一个简单的总结。
-        5. 将几个总结和回答拼接返回
-        6. 把聊天记录保存到数据库中，见backend/business/models/file_reading.py
-    return : {
-        content: str
-    }
-    '''
-    if request.method == 'POST':
-        data = json.loads(request.body)
-        local_path = data['local_path']
-        question = data['question']
-        username = request.session.get('username')
-        user = User.objects.get(username=username)
-        file = FileReading.objects.get(user_id=user, file_local_path=local_path)
-        conversation = []
-        conversation_path = ''
-        if file is None:
-            # 新建一个研读记录
-            t = get_pdf_title(local_path)
-            file = FileReading(user_id=user.user_id, file_local_path=local_path, title=t, conversation_path=None)
-            file.conversation_path = f'{USER_READ_CONSERVATION_PATH}/{file.user_id.id}_{file.title}.txt'
-            conversation_path = file.conversation_path
-            file.save()
-        else:
-            conversation_path = file.conversation_path
-            with open(conversation_path, 'r') as f:
-                conversation = json.load(f)
-        conversation.append({'role': 'user', 'content': question})
-        # 从数据库中找到最相似的段落
+# @require_http_methods(["POST"])
+# def paper_interpret(request):
+#     # mark:已被放弃
+#     '''
+#     本文件唯一的接口，类型为POST
+#     根据用户的问题，返回一个回答
+#     思路如下：
+#         1. 根据session获得用户的username, request中包含local_path和question
+#         2. 根据paper_id得到向量库中各段落的向量，根据question得到问题的向量，选择最相似的段落
+#         3. 将段落输入到ChatGLM2-6B中，得到回答，进行总结，给出一个本文中的回答
+#         4. 查找与其相似度最高的几篇文章的段落，相似度最高的5个段落，对每段给出一个简单的总结。
+#         5. 将几个总结和回答拼接返回
+#         6. 把聊天记录保存到数据库中，见backend/business/models/file_reading.py
+#     return : {
+#         content: str
+#     }
+#     '''
+#     if request.method == 'POST':
+#         data = json.loads(request.body)
+#         local_path = data['local_path']
+#         question = data['question']
+#         username = request.session.get('username')
+#         user = User.objects.get(username=username)
+#         file = FileReading.objects.get(user_id=user, file_local_path=local_path)
+#         conversation = []
+#         conversation_path = ''
+#         if file is None:
+#             # 新建一个研读记录
+#             t = get_pdf_title(local_path)
+#             file = FileReading(user_id=user.user_id, file_local_path=local_path, title=t, conversation_path=None)
+#             file.conversation_path = f'{USER_READ_CONSERVATION_PATH}/{file.user_id.id}_{file.title}.txt'
+#             conversation_path = file.conversation_path
+#             file.save()
+#         else:
+#             conversation_path = file.conversation_path
+#             with open(conversation_path, 'r') as f:
+#                 conversation = json.load(f)
+#         conversation.append({'role': 'user', 'content': question})
+#         # 从数据库中找到最相似的段落
+#
+#             # print(f"Received data (Client ID {client_id}): {data}")
+#         elif decoded_line.startswith('event'):
+#             event_type = decoded_line.replace('event: ', '')
+#             # print(f"Event type: {event_type}")
+#     finally:
+#         response.close()
+#     # print(response)  # 目前不清楚是何种返回 TODO:
+#     return reply.success({"ai_reply": ai_reply, "docs": origin_docs}, msg="成功")
