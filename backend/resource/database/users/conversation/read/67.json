@@ -1,0 +1,12 @@
+{
+    "conversation": [
+        {
+            "role": "user",
+            "content": "123"
+        },
+        {
+            "role": "assistant",
+            "content": "\u6211\u4e0d\u660e\u767d\u4f60\u7684\u95ee\u9898\u662f\u4ec0\u4e48\u3002\u80fd\u5426\u8bf7\u4f60\u63d0\u4f9b\u66f4\u591a\u7684\u4fe1\u606f\u6216\u8005\u660e\u786e\u4f60\u7684\u95ee\u9898\uff0c\u4ee5\u4fbf\u6211\u53ef\u4ee5\u66f4\u597d\u5730\u4e3a\u4f60\u63d0\u4f9b\u5e2e\u52a9\uff1f"
+        }
+    ]
+}

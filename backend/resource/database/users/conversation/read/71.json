@@ -1,0 +1,20 @@
+{
+    "conversation": [
+        {
+            "role": "user",
+            "content": "13"
+        },
+        {
+            "role": "assistant",
+            "content": "13\u662f\u4e00\u4e2a\u6570\u5b57\uff0c\u5982\u679c\u60a8\u6709\u5173\u4e8e13\u7684\u95ee\u9898\uff0c\u8bf7\u968f\u65f6\u63d0\u95ee\u3002"
+        },
+        {
+            "role": "user",
+            "content": "123"
+        },
+        {
+            "role": "assistant",
+            "content": "\u5f88\u62b1\u6b49\uff0c\u6211\u4e0d\u660e\u767d\u60a8\u7684\u95ee\u9898\u3002\u8bf7\u60a8\u63d0\u4f9b\u66f4\u5177\u4f53\u7684\u95ee\u9898\uff0c\u6211\u5c06\u7aed\u8bda\u4e3a\u60a8\u89e3\u7b54\u3002"
+        }
+    ]
+}

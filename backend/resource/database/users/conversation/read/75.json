@@ -1,0 +1,12 @@
+{
+    "conversation": [
+        {
+            "role": "user",
+            "content": "123"
+        },
+        {
+            "role": "assistant",
+            "content": "\u4f60\u597d\uff01\u8bf7\u95ee\u4f60\u6709\u4ec0\u4e48\u95ee\u9898\u9700\u8981\u6211\u5e2e\u52a9\u89e3\u7b54\u5417\uff1f"
+        }
+    ]
+}

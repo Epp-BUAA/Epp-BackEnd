@@ -95,7 +95,7 @@ def search_papers_by_keywords(keywords):
         filtered_paper_list.append(paper)
     return filtered_paper_list
 
-# TODO: 4.27完成
+
 @require_http_methods(["POST"])
 def vector_query(request):
     """
@@ -129,6 +129,10 @@ def vector_query(request):
         4. 返回文献信息
     """
     # 鉴权
+    items = request.session.items()
+    for key, value in items:
+        print(f'{key}: {value}')
+
     username = request.session.get('username')
     if username is None:
         username = 'sanyuba'
@@ -199,10 +203,10 @@ def vector_query(request):
     if decoded_line.startswith('data'):
         data = json.loads(decoded_line.replace('data: ', ''))
         ai_reply += data['text']
+    print(f'ai_reply: {ai_reply}')
 
     # 判断是创建检索/恢复检索
     search_record_id = request_data.get('search_record_id')
-    print(search_record_id)
     if search_record_id is None:
         search_record = SearchRecord(user_id=user, keyword=search_content, conversation_path=None)
         search_record.save()

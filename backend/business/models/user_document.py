@@ -30,3 +30,6 @@ class UserDocument(models.Model):
 
     def __str__(self):
         return self.title
+
+    def get_document_id(self):
+        return str(self.document_id)

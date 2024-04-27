@@ -47,6 +47,9 @@ class Paper(models.Model):
     def __str__(self):
         return self.title
 
+    def get_paper_id(self):
+        return str(self.paper_id)
+
     def to_dict(self):
         return {
             'paper_id': self.paper_id,

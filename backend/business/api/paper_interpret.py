@@ -149,6 +149,8 @@ def get_tmp_kb_id(file_reading_id):
 def create_paper_study(request):
     # 鉴权
     username = request.session.get('username')
+    print(request.session)
+    print(f"!!!!!!!!!!!!!!!!!!!!!!!!!username: {username}")
     if username is None:
         username = 'sanyuba'
     print(username)
@@ -176,10 +178,10 @@ def create_paper_study(request):
         paper = Paper.objects.get(paper_id=paper_id)
         title = paper.title
         content_type = '.pdf'
-        paper_local_url = get_paper_local_url(paper)
-        if paper_local_url is None:
+        local_path = get_paper_local_url(paper)
+        if local_path is None:
             return reply.fail(msg="论文无法下载，请联系管理员/换一篇文章研读")
-        file_reading = FileReading(user_id=user, paper_id=paper_id, title="数据库论文研读",
+        file_reading = FileReading(user_id=user, paper_id=paper, title="数据库论文研读",
                                    conversation_path=None)
     else:
         return reply.fail(msg="类型有误, 金哥我阐述你的梦")
@@ -238,12 +240,12 @@ def restore_paper_study(request):
     file_reading_id = request_data.get('file_reading_id')
     fr = FileReading.objects.get(id=file_reading_id)
     if not fr.document_id:
-        paper = Paper.objects.get(paper_id=fr.paper_id)
+        paper = Paper.objects.get(paper_id=fr.paper_id.get_paper_id())
         local_path = paper.local_path
         title = paper.title
         content_type = ".pdf"
     else:
-        document = UserDocument.objects.get(document_id=fr.document_id)
+        document = UserDocument.objects.get(document_id=fr.document_id.get_document_id())
         local_path = document.local_path
         title = document.title
         content_type = document.format
