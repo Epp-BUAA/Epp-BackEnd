@@ -537,3 +537,19 @@ def re_do_paper_study(request):
 #         response.close()
 #     # print(response)  # 目前不清楚是何种返回 TODO:
 #     return reply.success({"ai_reply": ai_reply, "docs": origin_docs}, msg="成功")
+@require_http_methods(["POST"])
+def clear_conversation(request):
+    # 鉴权
+    username = request.session.get('username')
+    if username is None:
+        username = 'sanyuba'
+    user = User.objects.filter(username=username).first()
+    if user is None:
+        return reply.fail(msg="请先正确登录")
+
+    request_data = json.loads(request.body)
+    file_reading_id = request_data.get('file_reading_id')
+    fr = FileReading.objects.get(id=file_reading_id)
+    with open(fr.conversation_path, 'w') as f:
+        json.dump({"conversation": []}, f, indent=4)
+    return reply.success(msg="清除对话历史成功")
