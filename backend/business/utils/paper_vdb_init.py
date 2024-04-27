@@ -83,16 +83,16 @@ def get_filtered_paper(text, k, threshold=None):
     for d, i in zip(distances[0], indices[0]):
         i2d_dict[metadata[i]] = d
     paper_ids = [metadata[i] for i in indices[0]]
-    filtered_paper = Paper.objects.filter(paper_id__in=paper_ids)
-    paper_dict = []
-    for p in filtered_paper:
+    filtered_papers = Paper.objects.filter(paper_id__in=paper_ids)
+    ht_threshold_papers = []
+    for p in filtered_papers:
         sim = i2d_dict[p.paper_id]
         if threshold is not None and sim < threshold:
             continue
-        p_dict = p.to_dict()
-        p_dict['similarity'] = float(sim)
-        paper_dict.append(p_dict)
-    return paper_dict
+        # p_dict = p.to_dict()
+        # p_dict['similarity'] = float(sim)
+        ht_threshold_papers.append(p)
+    return ht_threshold_papers
 
 
 def easy_vector_query(request):
