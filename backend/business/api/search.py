@@ -368,7 +368,8 @@ def dialog_query(request):
     content = ''
     if 'yes' in response_type:  # 担心可能有句号等等
         # 查询论文，TODO:接入向量化检索
-        filtered_paper = query_with_vector(message)
+        # filtered_paper = query_with_vector(message) # 旧版的接口，换掉了 2024.4.28
+        filtered_paper = get_filtered_paper(text=message, k=5)
         dialog_type = 'query'
         papers = []
         for paper in filtered_paper:
@@ -382,8 +383,9 @@ def dialog_query(request):
         history.append({'role': 'assistant', 'content': content})
     else:
         # 对话，保存3轮最多了，担心吃不下
-        print(history.copy()[-5:])
-        response = queryGLM(message, history.copy()[-5:])
+        input_history = history.copy()[-5:] if len(history) > 5 else history.copy()
+        print(input_history)
+        response = queryGLM('你是epp科研助手，请礼貌的回答用户发出的问题：\n' + message, input_history)
         dialog_type = 'dialog'
         papers = []
         content = response
