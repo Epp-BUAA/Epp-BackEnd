@@ -19,7 +19,7 @@ from django.urls import path
 from django.conf import settings
 from django.conf.urls.static import static
 
-from business.api.paper_interpret import create_paper_study, restore_paper_study, do_paper_study
+from business.api.paper_interpret import create_paper_study, restore_paper_study, do_paper_study, get_paper_url
 from business.api.vector_database import insert_vector_database
 from business.api.auth import login, signup, testLogin, logout, manager_login, manager_logout
 from business.api.paper_details import like_paper, score_paper, collect_paper, report_comment, comment_paper, \
@@ -27,7 +27,7 @@ from business.api.paper_details import like_paper, score_paper, collect_paper, r
     get_user_paper_info
 from business.api.upload_document import upload_paper, remove_uploaded_paper, document_list
 from business.api import user_info, manage
-from business.api.search import vector_query, dialog_query, flush
+from business.api.search import vector_query, dialog_query, flush, restore_search_record
 from business.utils.paper_vdb_init import local_vdb_init, easy_vector_query
 
 urlpatterns = [
@@ -88,7 +88,8 @@ urlpatterns = [
                   path("api/study/createPaperStudy", create_paper_study),
                   path("api/study/restorePaperStudy", restore_paper_study),
                   path("api/study/doPaperStudy", do_paper_study),
-
+                  path("api/study/getPaperPDF", get_paper_url),
+                  path("api/search/restoreSearchRecord", restore_search_record),
                   # 本地向量库初始化
                   path("api/init/localVDBInit", local_vdb_init)
               ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

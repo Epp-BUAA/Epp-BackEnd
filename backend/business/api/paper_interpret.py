@@ -157,20 +157,11 @@ def create_paper_study(request):
         paper = Paper.objects.get(paper_id=paper_id)
         title = paper.title
         content_type = '.pdf'
-        local_path = paper.local_path
-        if not local_path:
-            original_url = paper.original_url
-            # 将路径中的abs修改为pdf
-            original_url = original_url.replace('abs', 'pdf')
-            # 访问url，下载文献到服务器
-            filename = str(paper.paper_id)
-            local_path = downloadPaper(original_url, filename)
-            if local_path is None:
-                return reply.fail(msg="文献下载失败，请检查网络或联系管理员")
-            paper.local_path = local_path
-            paper.save()
-            file_reading = FileReading(user_id=user, paper_id=paper_id, title="数据库论文研读",
-                                       conversation_path=None)
+        paper_local_url = get_paper_local_url(paper)
+        if paper_local_url is None:
+            return reply.fail(msg="论文无法下载，请联系管理员/换一篇文章研读")
+        file_reading = FileReading(user_id=user, paper_id=paper_id, title="数据库论文研读",
+                                   conversation_path=None)
     else:
         return reply.fail(msg="类型有误, 金哥我阐述你的梦")
 
@@ -195,7 +186,6 @@ def create_paper_study(request):
     # }
 
     response = requests.request("POST", upload_temp_docs_url, files=files)
-
     # 关闭文件，防止内存泄露
     for k, v in files:
         v[1].close()
@@ -211,6 +201,8 @@ def create_paper_study(request):
     恢复文献研读对话：
         传入文献研读对话id即可
 '''
+
+
 @require_http_methods(["POST"])
 def restore_paper_study(request):
     # 鉴权
@@ -288,9 +280,50 @@ async def async_test(request):
 
 
 '''
-    论文研读 Key! 此时AI回复为非流式输出, 可能浪费时间, alpha版本先这样
-    引入多线程执行
+    获取本地url
 '''
+
+
+def get_paper_local_url(paper):
+    local_path = paper.local_path
+    if not local_path:
+        original_url = paper.original_url
+        # 将路径中的abs修改为pdf
+        original_url = original_url.replace('abs', 'pdf')
+        # 访问url，下载文献到服务器
+        filename = str(paper.paper_id)
+        local_path = downloadPaper(original_url, filename)
+        paper.local_path = local_path
+        paper.save()
+    return local_path
+
+
+'''
+    获取文献本地url, 无则下载
+'''
+
+
+def get_paper_url(request):
+    # 鉴权
+    username = request.session.get('username')
+    if username is None:
+        username = 'sanyuba'
+    user = User.objects.filter(username=username).first()
+    if user is None:
+        return reply.fail(msg="请先正确登录")
+
+    paper_id = request.GET.get('paper_id')
+    paper = Paper.objects.get(paper_id=paper_id)
+    paper_local_url = get_paper_local_url(paper)
+    if paper_local_url is None:
+        return reply.fail(msg="文献下载失败，请检查网络或联系管理员")
+    return reply.success({"local_url": paper_local_url}, msg="success")
+
+
+'''
+    论文研读 Key! 此时AI回复为非流式输出, 可能浪费时间, alpha版本先这样
+'''
+
 
 @require_http_methods(["POST"])
 def do_paper_study(request):
