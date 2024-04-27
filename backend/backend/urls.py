@@ -29,6 +29,7 @@ from business.api.upload_document import upload_paper, remove_uploaded_paper, do
 from business.api import user_info, manage
 from business.api.search import vector_query, dialog_query, flush, restore_search_record
 from business.utils.paper_vdb_init import local_vdb_init, easy_vector_query
+from business.api.summary import generate_summary, create_abstract_report
 
 urlpatterns = [
                   path("admin/", admin.site.urls),
@@ -92,5 +93,9 @@ urlpatterns = [
                   path("api/study/getPaperPDF", get_paper_url),
                   path("api/study/reDoPaperStudy", re_do_paper_study),
                   # 本地向量库初始化
-                  path("api/init/localVDBInit", local_vdb_init)
+                  path("api/init/localVDBInit", local_vdb_init),
+                  
+                  # 综述摘要生成
+                   path("api/generateSummaryReport", generate_summary),
+                   path("api/generateAbstractReport", create_abstract_report),
               ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
