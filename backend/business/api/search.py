@@ -154,7 +154,8 @@ def vector_query(request):
     }
     payload = json.dumps({
         "query": search_content,
-        "prompt_name": "keyword"
+        "prompt_name": "keyword",
+        "temperature": 0.3
     })
     response = requests.request("POST", chat_chat_url, data=payload, headers=headers, stream=False)
     keyword = ""
@@ -167,7 +168,9 @@ def vector_query(request):
 
     print(keyword)
     keywords = keyword.split(", ")  # ["aa", "bb"]
-    keywords = [keyword for keyword in keywords if "paper" not in keyword]
+    not_keywords = ["paper", "research", "article"]
+    for not_keyword in not_keywords:
+        keywords = [keyword for keyword in keywords if not_keyword not in keyword]
 
     keyword_filtered_papers = search_papers_by_keywords(keywords=keywords)
 
@@ -190,14 +193,18 @@ def vector_query(request):
 
     # return reply.success({"data": "成功", "content": content})
     # 进行总结， 输入标题/摘要
-    papers_summary = ""
+    papers_summary = f"关键词："
+    for keyword in keywords:
+        papers_summary += keyword + "，"
+    papers_summary += "\n"
     for paper in filtered_papers[:20]:
-        papers_summary += f'<标题>：{paper.title}\n'
+        papers_summary += f'{paper.title}\n'
         # papers_summary += f'摘要为：{paper.abstract}\n'
 
     payload = json.dumps({
         "query": papers_summary,
-        "prompt_name": "query_summary"
+        "prompt_name": "query_summary",
+        "temperature": 0.3
     })
 
     response = requests.request("POST", chat_chat_url, data=payload, headers=headers, stream=False)
@@ -269,6 +276,20 @@ def restore_search_record(request):
         conversation_history = json.load(f)
 
     return reply.success(conversation_history)
+@require_http_methods(["GET"])
+def get_user_search_history(request):
+    username = request.session.get('username')
+    if username is None:
+        username = 'sanyuba'
+    user = User.objects.filter(username=username).first()
+    if user is None:
+        return reply.fail(msg="请先正确登录")
+    search_records = SearchRecord.objects.filter(user_id=user).order_by('-date')
+    keywords = []
+    for item in search_records:
+        keywords.append(item.keyword)
+
+    return reply.success({"keywords": list(set(keywords))[:10]})
 
 @require_http_methods(["POST"])
 def dialog_query(request):
