@@ -193,10 +193,12 @@ def vector_query(request):
 
     # return reply.success({"data": "成功", "content": content})
     # 进行总结， 输入标题/摘要
-    papers_summary = f"关键词："
-    for keyword in keywords:
-        papers_summary += keyword + "，"
-    papers_summary += "\n"
+    # papers_summary = f"关键词："
+    # papers_summary = "下述论文与主题"
+    # for keyword in keywords:
+    #     papers_summary += keyword + "，"
+    # papers_summary += "密切相关\n"
+    papers_summary = ""
     for paper in filtered_papers[:20]:
         papers_summary += f'{paper.title}\n'
         # papers_summary += f'摘要为：{paper.abstract}\n'
