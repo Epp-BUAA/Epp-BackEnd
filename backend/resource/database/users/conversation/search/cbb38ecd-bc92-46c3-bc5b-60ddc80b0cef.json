@@ -1,0 +1,12 @@
+{
+    "conversation": [
+        {
+            "role": "user",
+            "content": "tell me some transformer papers"
+        },
+        {
+            "role": "assistant",
+            "content": "\u6839\u636e\u60a8\u7684\u9700\u6c42\uff0cEpp\u8bba\u6587\u52a9\u624b\u68c0\u7d22\u5230\u4e86120\u7bc7\u8bba\u6587\uff0c\u5176\u4e3b\u8981\u5206\u5e03\u57282020\u52302023\u4e4b\u95f4\uff0c\u5176\u4e2d2022\u8fd9\u4e00\u5e74\u7684\u8bba\u6587\u6570\u91cf\u6700\u591a\uff0c\u670938\u7bc7\u8bba\u6587\u3002\n"
+        }
+    ]
+}

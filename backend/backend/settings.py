@@ -171,6 +171,7 @@ USER_DOCUMENTS_PATH = 'resource/uploads/users/documents'  # 用户上传文件�
 USER_REPORTS_PATH = 'resource/database/users/reports'  # 用户生成报告路径
 USER_SEARCH_CONSERVATION_PATH = 'resource/database/users/conversation/search'  # 调研助手对话文件路径
 USER_READ_CONSERVATION_PATH = 'resource/database/users/conversation/read'  # 论文研读助手对话文件路径
+USER_READ_MAP_PATH = 'resource/database/users/conversation/read/file_reading_2_tmp_kb_id_map.json'
 PAPERS_PATH = 'resource/database/papers/'  # 数据库论文路径
 BATCH_DOWNLOAD_PATH = 'resource/database/users/batch_download'  # 批量下载文件路径
 
@@ -185,6 +186,7 @@ MAX_Similarity = 0.8  # 最大相似度，介于-1和1之间，不确定
 REMOTE_MODEL_BASE_PATH = '172.17.62.88:7861'
 # 使用openai流式接口调用glm3大模型，不附带知识库
 REMOTE_CHATCHAT_GLM3_OPENAI_PATH = '172.17.62.88:20005'
+
 
 # 语义检索相关
 VECTOR_DIM = 1024

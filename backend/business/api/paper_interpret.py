@@ -126,6 +126,25 @@ def create_content_disposition(filename):
     return disposition
 
 
+# 建立file_reading和tmp_kb的映射
+def insert_file_2_kb(file_reading_id, tmp_kb_id):
+    with open(settings.USER_READ_MAP_PATH, "r") as f:
+        f_2_kb_map = json.load(f)
+    f_2_kb_map[file_reading_id] = tmp_kb_id
+    with open(settings.USER_READ_MAP_PATH, "w") as f:
+        json.dump(f_2_kb_map, f, indent=4)
+
+
+def get_tmp_kb_id(file_reading_id):
+    with open(settings.USER_READ_MAP_PATH, "r") as f:
+        f_2_kb_map = json.load(f)
+    print(f_2_kb_map)
+    if str(file_reading_id) in f_2_kb_map:
+        return f_2_kb_map[str(file_reading_id)]
+    else:
+        return None
+
+
 @require_http_methods(["POST"])
 def create_paper_study(request):
     # 鉴权
@@ -192,7 +211,8 @@ def create_paper_study(request):
 
     if response.status_code == 200:
         tmp_kb_id = response.json()['data']['id']
-        return reply.success({'tmp_kb_id': tmp_kb_id, 'file_reading_id': file_reading.id}, msg="开启文献研读对话成功")
+        insert_file_2_kb(file_reading.id, tmp_kb_id)
+        return reply.success({'file_reading_id': file_reading.id}, msg="开启文献研读对话成功")
     else:
         return reply.fail(msg="连接模型服务器失败")
 
@@ -250,7 +270,7 @@ def restore_paper_study(request):
     # 返回结果, 需要将历史对话一起返回
     if response.status_code == 200:
         tmp_kb_id = response.json()['data']['id']
-
+        insert_file_2_kb(file_reading_id, tmp_kb_id)
         # 若删除过历史对话, 则再创建一个文件
         if not os.path.exists(fr.conversation_path):
             with open(fr.conversation_path, 'w') as f:
@@ -261,7 +281,7 @@ def restore_paper_study(request):
             conversation_history = json.load(f)  # 使用 json.load() 方法将 JSON 数据转换为字典
 
         return reply.success(
-            {'tmp_kb_id': tmp_kb_id, 'file_reading_id': file_reading_id, 'conversation_history': conversation_history},
+            {'file_reading_id': file_reading_id, 'conversation_history': conversation_history},
             msg="恢复文献研读对话成功")
     else:
         return reply.fail(msg="连接模型服务器失败")
@@ -320,33 +340,7 @@ def get_paper_url(request):
     return reply.success({"local_url": paper_local_url}, msg="success")
 
 
-'''
-    论文研读 Key! 此时AI回复为非流式输出, 可能浪费时间, alpha版本先这样
-'''
-
-
-@require_http_methods(["POST"])
-def do_paper_study(request):
-    # 鉴权
-    username = request.session.get('username')
-    if username is None:
-        username = 'sanyuba'
-    user = User.objects.filter(username=username).first()
-    if user is None:
-        return reply.fail(msg="请先正确登录")
-
-    request_data = json.loads(request.body)
-    tmp_kb_id = request_data.get('tmp_kb_id')  # 临时知识库id
-    query = request_data.get('query')  # 本次询问对话
-    file_reading_id = request_data.get('file_reading_id')
-    fr = FileReading.objects.get(id=file_reading_id)
-
-    # 加载历史记录
-    with open(fr.conversation_path, 'r') as f:
-        conversation_history = json.load(f)
-
-    conversation_history = list(conversation_history.get('conversation'))  # List[Dict]
-
+def do_file_chat(conversation_history, query, tmp_kb_id):
     # 将历史记录与本次对话发送给服务器, 获取对话结果
     file_chat_url = f'http://{settings.REMOTE_MODEL_BASE_PATH}/chat/file_chat'
     headers = {
@@ -389,15 +383,6 @@ def do_paper_study(request):
     # task = asyncio.create_task(_get_ai_reply())  # 创建任务
     ai_reply, origin_docs = _get_ai_reply(payload)
 
-    # 添加历史记录并保存
-    conversation_history.extend([{
-        "role": "user",
-        "content": query
-    }, {
-        "role": "assistant",
-        "content": ai_reply if ai_reply != "" else "此问题由于某原因无回答"
-    }])
-
     # 给出用户仍可能存在的问题
     def _get_prob_paper_study_question():
 
@@ -415,9 +400,91 @@ def do_paper_study(request):
         return question_reply
 
     question_reply = _get_prob_paper_study_question()
+    return ai_reply, origin_docs, question_reply
 
-    with open(fr.conversation_path, 'w') as f:
+
+def add_conversation_history(conversation_history, query, ai_reply, conversation_path):
+    # 添加历史记录并保存
+    conversation_history.extend([{
+        "role": "user",
+        "content": query
+    }, {
+        "role": "assistant",
+        "content": ai_reply if ai_reply != "" else "此问题由于某原因无回答"
+    }])
+
+    with open(conversation_path, 'w') as f:
         json.dump({"conversation": conversation_history}, f, indent=4)
+
+
+'''
+    论文研读 Key! 此时AI回复为非流式输出, 可能浪费时间, alpha版本先这样
+'''
+
+
+@require_http_methods(["POST"])
+def do_paper_study(request):
+    # 鉴权
+    username = request.session.get('username')
+    if username is None:
+        username = 'sanyuba'
+    user = User.objects.filter(username=username).first()
+    if user is None:
+        return reply.fail(msg="请先正确登录")
+
+    request_data = json.loads(request.body)
+    query = request_data.get('query')  # 本次询问对话
+    file_reading_id = request_data.get('file_reading_id')
+    fr = FileReading.objects.get(id=file_reading_id)
+    tmp_kb_id = get_tmp_kb_id(file_reading_id=file_reading_id)  # 临时知识库id
+    if tmp_kb_id is None:
+        return reply.fail(msg="请先创建研读会话")
+    # 加载历史记录
+    with open(fr.conversation_path, 'r') as f:
+        conversation_history = json.load(f)
+
+    conversation_history = list(conversation_history.get('conversation'))  # List[Dict]
+    # print(conversation_history, query, tmp_kb_id)
+    ai_reply, origin_docs, question_reply = do_file_chat(conversation_history, query, tmp_kb_id)
+    add_conversation_history(conversation_history, query, ai_reply, fr.conversation_path)
+    return reply.success({"ai_reply": ai_reply, "docs": origin_docs, "prob_question": question_reply}, msg="成功")
+
+
+'''
+    论文研读：重新生成回复
+        
+'''
+
+
+@require_http_methods(["POST"])
+def re_do_paper_study(request):
+    # 鉴权
+    username = request.session.get('username')
+    if username is None:
+        username = 'sanyuba'
+    user = User.objects.filter(username=username).first()
+    if user is None:
+        return reply.fail(msg="请先正确登录")
+
+    request_data = json.loads(request.body)
+    file_reading_id = request_data.get('file_reading_id')
+    tmp_kb_id = get_tmp_kb_id(file_reading_id=file_reading_id)
+    if tmp_kb_id is None:
+        return reply.fail(msg="请先创建研读会话")
+
+    fr = FileReading.objects.get(id=file_reading_id)
+    conversation_path = fr.conversation_path
+    with open(fr.conversation_path, 'r') as f:
+        conversation_history = json.load(f)
+
+    conversation_history = list(conversation_history.get('conversation'))
+    # 获取最后一次的询问, 并去除最后一次的对话记录
+    query = conversation_history[-2].get('content')
+    conversation_history = conversation_history[:-2]
+
+    # 同 do_paper_study
+    ai_reply, origin_docs, question_reply = do_file_chat(conversation_history, query, tmp_kb_id)
+    add_conversation_history(conversation_history, query, ai_reply, conversation_path)
     return reply.success({"ai_reply": ai_reply, "docs": origin_docs, "prob_question": question_reply}, msg="成功")
 
 # @require_http_methods(["POST"])

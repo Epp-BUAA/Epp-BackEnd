@@ -160,6 +160,8 @@ def vector_query(request):
     if decoded_line.startswith('data'):
         data = json.loads(decoded_line.replace('data: ', ''))
         keyword += data['text']
+
+    print(keyword)
     keywords = keyword.split(", ")  # ["aa", "bb"]
     keywords = [keyword for keyword in keywords if "paper" not in keyword]
 
@@ -359,7 +361,6 @@ def dialog_query(request):
         'content': content
     }
     return JsonResponse(res, status=200)
-
 
 @require_http_methods(["DELETE"])
 def flush(request):

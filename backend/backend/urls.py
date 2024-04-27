@@ -19,7 +19,7 @@ from django.urls import path
 from django.conf import settings
 from django.conf.urls.static import static
 
-from business.api.paper_interpret import create_paper_study, restore_paper_study, do_paper_study, get_paper_url
+from business.api.paper_interpret import re_do_paper_study, create_paper_study, restore_paper_study, do_paper_study, get_paper_url
 from business.api.vector_database import insert_vector_database
 from business.api.auth import login, signup, testLogin, logout, manager_login, manager_logout
 from business.api.paper_details import like_paper, score_paper, collect_paper, report_comment, comment_paper, \
@@ -80,6 +80,7 @@ urlpatterns = [
                   path("api/search/vectorQuery", vector_query),
                   path("api/search/dialogQuery", dialog_query),
                   path("api/search/flush", flush),
+                  path("api/search/restoreSearchRecord", restore_search_record),
 
                   # 向量化模块
                   path("insert_vector_database", insert_vector_database),
@@ -89,7 +90,7 @@ urlpatterns = [
                   path("api/study/restorePaperStudy", restore_paper_study),
                   path("api/study/doPaperStudy", do_paper_study),
                   path("api/study/getPaperPDF", get_paper_url),
-                  path("api/search/restoreSearchRecord", restore_search_record),
+                  path("api/study/reDoPaperStudy", re_do_paper_study),
                   # 本地向量库初始化
                   path("api/init/localVDBInit", local_vdb_init)
               ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
