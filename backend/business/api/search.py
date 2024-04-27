@@ -154,7 +154,8 @@ def vector_query(request):
     }
     payload = json.dumps({
         "query": search_content,
-        "prompt_name": "keyword"
+        "prompt_name": "keyword",
+        "temperature": 0.3
     })
     response = requests.request("POST", chat_chat_url, data=payload, headers=headers, stream=False)
     keyword = ""
@@ -197,7 +198,8 @@ def vector_query(request):
 
     payload = json.dumps({
         "query": papers_summary,
-        "prompt_name": "query_summary"
+        "prompt_name": "query_summary",
+        "temperature": 0.3
     })
 
     response = requests.request("POST", chat_chat_url, data=payload, headers=headers, stream=False)

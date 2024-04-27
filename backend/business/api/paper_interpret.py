@@ -394,7 +394,8 @@ def do_file_chat(conversation_history, query, tmp_kb_id):
             "knowledge_id": tmp_kb_id,
             "history": conversation_history[-4:],
             "prompt_name": "question",  # 使用问题模式
-            "max_tokens": 50
+            "max_tokens": 50,
+            "temperature": 0.4
         })
         question_reply, _ = _get_ai_reply(payload)
         question_reply = re.sub(r'\d. ', '', question_reply).split("\n")[:2]
