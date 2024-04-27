@@ -339,7 +339,7 @@ def get_paper_url(request):
     paper_local_url = get_paper_local_url(paper)
     if paper_local_url is None:
         return reply.fail(msg="文献下载失败，请检查网络或联系管理员")
-    return reply.success({"local_url": paper_local_url}, msg="success")
+    return reply.success({"local_url": "/" + paper_local_url}, msg="success")
 
 
 def do_file_chat(conversation_history, query, tmp_kb_id):

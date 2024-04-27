@@ -183,14 +183,16 @@ def vector_query(request):
                     key=[paper.publication_date.year for paper in filtered_papers].count)
 
     cnt = len([1 for paper in filtered_papers if paper.publication_date.year == most_year])
-    ai_reply += f'根据您的需求，Epp论文助手检索到了{len(filtered_papers)}篇论文，其主要分布在{start_year}到{end_year}之间，其中{most_year}这一年的论文数量最多，有{cnt}篇论文。\n'
+    ai_reply += (f'根据您的需求，Epp论文助手检索到了【{len(filtered_papers)}】篇论文，其主要分布在【{start_year}】'
+                 f'到【{end_year}】之间，其中【{most_year}】这一年的论文数量最多，有【{cnt}】篇论文,'
+                 f'显示出近几年在该领域的研究活跃度较高。\n')
     # return reply.success({"keyword": keyword, 'papers': filtered_paper})
 
     # return reply.success({"data": "成功", "content": content})
     # 进行总结， 输入标题/摘要
     papers_summary = ""
-    for paper in filtered_papers[:30]:
-        papers_summary += f'标题：{paper.title}\n'
+    for paper in filtered_papers[:20]:
+        papers_summary += f'<标题>：{paper.title}\n'
         # papers_summary += f'摘要为：{paper.abstract}\n'
 
     payload = json.dumps({
@@ -199,11 +201,17 @@ def vector_query(request):
     })
 
     response = requests.request("POST", chat_chat_url, data=payload, headers=headers, stream=False)
-    decoded_line = response.iter_lines().__next__().decode('utf-8')
-    if decoded_line.startswith('data'):
-        data = json.loads(decoded_line.replace('data: ', ''))
-        ai_reply += data['text']
-    print(f'ai_reply: {ai_reply}')
+    if response.status_code == 200:
+        lines = response.iter_lines()
+        for line in lines:
+            decoded_line = line.decode('utf-8')
+            print(decoded_line)
+            if decoded_line.startswith('data'):
+                data = json.loads(decoded_line.replace('data: ', ''))
+                ai_reply += data['text']
+            print(f'ai_reply: {ai_reply}')
+    else:
+        return reply.fail(msg='检索总结失败，请检查网络并重新尝试')
 
     # 判断是创建检索/恢复检索
     search_record_id = request_data.get('search_record_id')
