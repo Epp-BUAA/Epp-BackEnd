@@ -175,7 +175,7 @@ USER_READ_MAP_PATH = 'resource/database/users/conversation/read/file_reading_2_t
 PAPERS_PATH = 'resource/database/papers/'  # 数据库论文路径
 BATCH_DOWNLOAD_PATH = 'resource/database/users/batch_download'  # 批量下载文件路径
 
-PAPERS_URL = '/resource/database/papers/'  # 数据库论文本地URL
+PAPERS_URL = 'resource/database/papers/'  # 数据库论文本地URL
 BATCH_DOWNLOAD_URL = '/resource/database/users/batch_download/'  # 批量下载文件本地URL
 USER_DOCUMENTS_URL = '/resource/uploads/users/documents/'  # 用户上传文件本地URL
 CACHE_PATH = '/cache/'  # 缓存路径
