@@ -168,7 +168,9 @@ def vector_query(request):
 
     print(keyword)
     keywords = keyword.split(", ")  # ["aa", "bb"]
-    keywords = [keyword for keyword in keywords if "paper" not in keyword]
+    not_keywords = ["paper", "research", "article"]
+    for not_keyword in not_keywords:
+        keywords = [keyword for keyword in keywords if not_keyword not in keyword]
 
     keyword_filtered_papers = search_papers_by_keywords(keywords=keywords)
 
@@ -191,12 +193,12 @@ def vector_query(request):
 
     # return reply.success({"data": "成功", "content": content})
     # 进行总结， 输入标题/摘要
-    papers_summary = f"<关键词>："
+    papers_summary = f"关键词："
     for keyword in keywords:
         papers_summary += keyword + "，"
     papers_summary += "\n"
     for paper in filtered_papers[:20]:
-        papers_summary += f'<标题>：{paper.title}\n'
+        papers_summary += f'{paper.title}\n'
         # papers_summary += f'摘要为：{paper.abstract}\n'
 
     payload = json.dumps({
