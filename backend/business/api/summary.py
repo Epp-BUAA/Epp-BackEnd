@@ -7,7 +7,7 @@ from django.http import JsonResponse, HttpRequest
 import openai, json
 from business.models import User, paper
 import threading, requests
-from utils.reply import fail, success
+from business.utils.reply import fail, success
 from django.conf import settings
 from business.models import User, UserDocument, Paper, abstract_report
 from django.views.decorators.http import require_http_methods
@@ -103,6 +103,8 @@ def generate_summary(request):
         response = quertGLM(prompt, [])
         with open(report.report_path, 'w') as f:
             f.write(response)
+            
+        print(response)
         
         return JsonResponse({'message': "综述生成成功"}, status=200)
     except Exception as e:
@@ -262,6 +264,7 @@ def create_abstract_report(request):
     # 修改语病，更加通顺
     prompt = '这是一篇摘要，请让他更加通顺：\n' + summary
     response = quertGLM(prompt, [])
+    print(response)
     with open(report_path, 'w') as f:
         f.write(response)
         
