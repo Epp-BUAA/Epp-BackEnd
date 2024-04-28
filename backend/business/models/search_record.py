@@ -5,6 +5,7 @@ from django.db import models
 import uuid
 
 from .user import User
+from .paper import Paper
 
 
 class SearchRecord(models.Model):
@@ -21,3 +22,4 @@ class SearchRecord(models.Model):
     keyword = models.CharField(max_length=255)
     date = models.DateTimeField(auto_now=True)
     conversation_path = models.CharField(max_length=255, null=True)
+    related_papers = models.ManyToManyField(Paper, related_name='related_search_record', blank=True)

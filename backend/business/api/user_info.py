@@ -13,6 +13,7 @@ from business.models import User
 from business.models import SearchRecord
 from business.models import SummaryReport
 from business.models import FileReading
+from business.models import Notification
 from business.utils import reply
 
 if not os.path.exists(USER_READ_CONSERVATION_PATH):
@@ -245,3 +246,24 @@ def delete_paper_reading(request):
         reading.delete()
 
     return reply.success(msg="删除成功")
+
+
+@require_http_methods('GET')
+def notification_list(request):
+    """ 用户通知列表 """
+    username = request.session.get('username')
+    user = User.objects.filter(username=username).first()
+    if not user:
+        return reply.fail(msg="请先正确登录")
+
+    notifications = Notification.objects.filter(user_id=user)
+    data = {'total': len(notifications), 'notifications': []}
+    for notice in notifications:
+        data['notifications'].append({
+            "notification_id": notice.notification_id,
+            "title": notice.title,
+            "content": notice.content,
+            "date": notice.date.strftime("%Y-%m-%d %H:%M:%S"),
+            "is_read": notice.is_read,
+        })
+    return reply.success(data=data, msg='通知列表获取成功')
