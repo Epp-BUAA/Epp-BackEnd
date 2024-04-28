@@ -407,40 +407,6 @@ def dialog_query(request):
 
         ###########################################################
         # 对话，保存3轮最多了，担心吃不下
-        def kb_ask_ai(payload):
-            ''''
-            payload = json.dumps({
-                "query": query,
-                "knowledge_id": tmp_kb_id,
-                "history": conversation_history[-10:],
-                "prompt_name": "text"  # 使用历史记录对话模式
-            })
-            payload = json.dumps({
-                "query": query,
-                "knowledge_id": tmp_kb_id,
-                "prompt_name": "default"  # 使用普通对话模式
-            })
-            '''
-            file_chat_url = f'http://{settings.REMOTE_MODEL_BASE_PATH}/chat/file_chat'
-            headers = {
-                'Content-Type': 'application/json'
-            }
-            response = requests.request("POST", file_chat_url, data=payload, headers=headers, stream=False)
-            ai_reply = ""
-            origin_docs = []
-            print(response)
-            for line in response.iter_lines():
-                if line:
-                    decoded_line = line.decode('utf-8')
-                    if decoded_line.startswith('data'):
-                        data = decoded_line.replace('data: ', '')
-                        data = json.loads(data)
-                        ai_reply += data["answer"]
-                        for doc in data["docs"]:
-                            doc = str(doc).replace("\n", " ").replace("<span style='color:red'>", "").replace("</span>",
-                                                                                                              "")
-                            origin_docs.append(doc)
-            return ai_reply, origin_docs
 
         input_history = history.copy()[-5:] if len(history) > 5 else history.copy()
         print(input_history)
