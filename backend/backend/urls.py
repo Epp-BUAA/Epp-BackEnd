@@ -85,6 +85,7 @@ urlpatterns = [
                   path("api/search/restoreSearchRecord", restore_search_record),
                   path("api/study/getUserSearchHistory", get_user_search_history),
                   path('api/search/rebuildKB', build_kb),
+
                   # 向量化模块
                   path("insert_vector_database", insert_vector_database),
 
@@ -95,7 +96,7 @@ urlpatterns = [
                   path("api/study/getPaperPDF", get_paper_url),
                   path("api/study/reDoPaperStudy", re_do_paper_study),
                   path("api/study/clearConversation", clear_conversation),
-                    path("api/study/generateAbstractReport", create_abstract_report),
+                  path("api/study/generateAbstractReport", create_abstract_report),
                   # 本地向量库初始化
                   path("api/init/localVDBInit", local_vdb_init),
                   

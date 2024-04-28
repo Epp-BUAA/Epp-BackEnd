@@ -35,6 +35,7 @@ def queryGLM(msg: str, history=None) -> str:
     history.append({"role": "assistant", "content": response.choices[0].message.content})
     return response.choices[0].message.content
 
+
 from django.views.decorators.http import require_http_methods
 from business.models.paper import Paper
 
@@ -53,6 +54,12 @@ def search_papers_by_keywords(keywords):
     for paper in result:
         filtered_paper_list.append(paper)
     return filtered_paper_list
+
+
+def update_search_record_2_paper(search_record, filtered_papers):
+    search_record.related_papers.clear()
+    for paper in filtered_papers:
+        search_record.related_papers.add(paper)
 
 
 @require_http_methods(["POST"])
@@ -185,7 +192,8 @@ def vector_query(request):
     if search_record_id is None:
         search_record = SearchRecord(user_id=user, keyword=search_content, conversation_path=None)
         search_record.save()
-        conversation_path = os.path.join(settings.USER_SEARCH_CONSERVATION_PATH, str(search_record.search_record_id) + '.json')
+        conversation_path = os.path.join(settings.USER_SEARCH_CONSERVATION_PATH,
+                                         str(search_record.search_record_id) + '.json')
         if os.path.exists(conversation_path):
             os.remove(conversation_path)
         with open(conversation_path, 'w') as f:
@@ -195,6 +203,8 @@ def vector_query(request):
     else:
         search_record = SearchRecord.objects.get(search_record_id=search_record_id)
         conversation_path = search_record.conversation_path
+
+    update_search_record_2_paper(search_record, filtered_papers)
 
     # 处理历史记录部分, 无需向前端传递历史记录, 仅需对话文件中添加
     with open(conversation_path, 'r') as f:
@@ -216,8 +226,9 @@ def vector_query(request):
     filtered_papers_list = []
     for p in filtered_papers:
         filtered_papers_list.append(p.to_dict())
-        
+
     return JsonResponse({"paper_infos": filtered_papers_list, 'ai_reply': ai_reply, 'keywords': keywords}, status=200)
+
 
 @require_http_methods(["GET"])
 def restore_search_record(request):
@@ -233,9 +244,18 @@ def restore_search_record(request):
     search_record = SearchRecord.objects.get(search_record_id=search_record_id)
     conversation_path = search_record.conversation_path
     with open(conversation_path, 'r') as f:
-        conversation_history = json.load(f)
+        history = json.load(f)
 
-    return reply.success(conversation_history)
+    # 取出全部对应论文
+    paper_infos = []
+    papers = search_record.related_papers.all()
+    for paper in papers:
+        paper_infos.append(paper.to_dict())
+    history['paper_infos'] = paper_infos
+
+    return reply.success(history)
+
+
 @require_http_methods(["GET"])
 def get_user_search_history(request):
     username = request.session.get('username')
@@ -250,6 +270,7 @@ def get_user_search_history(request):
         keywords.append(item.keyword)
 
     return reply.success({"keywords": list(set(keywords))[:10]})
+
 
 @require_http_methods(["POST"])
 def dialog_query(request):
@@ -311,7 +332,8 @@ def dialog_query(request):
     if search_record is None:
         # 创建新的聊天记录
         search_record = SearchRecord.objects.create(user_id=user.user_id, keyword=keyword)
-        search_record.conversation_path = settings.USER_SEARCH_CONSERVATION_PATH + '/' + str(search_record.search_record_id) + '.json'
+        search_record.conversation_path = settings.USER_SEARCH_CONSERVATION_PATH + '/' + str(
+            search_record.search_record_id) + '.json'
         search_record.date = datetime.datetime.now()
         search_record.save()
     # 历史记录的json文件名称和search_record_id一致
@@ -344,11 +366,11 @@ def dialog_query(request):
             content += f'摘要为：{papers[i].abstract}\n'
         history.extend([{'role': 'assistant', 'content': content}])
     else:
-        
+
         ############################################################
-        
+
         ## 这部分重新重构了，按照方法是通过将左侧的文章重构成为一个知识库进行检索
-        
+
         ###########################################################
         # 对话，保存3轮最多了，担心吃不下
         def kb_ask_ai(payload):
@@ -381,9 +403,11 @@ def dialog_query(request):
                         data = json.loads(data)
                         ai_reply += data["answer"]
                         for doc in data["docs"]:
-                            doc = str(doc).replace("\n", " ").replace("<span style='color:red'>", "").replace("</span>", "")
+                            doc = str(doc).replace("\n", " ").replace("<span style='color:red'>", "").replace("</span>",
+                                                                                                              "")
                             origin_docs.append(doc)
             return ai_reply, origin_docs
+
         input_history = history.copy()[-5:] if len(history) > 5 else history.copy()
         print(input_history)
         payload = json.dumps({
@@ -395,7 +419,7 @@ def dialog_query(request):
         ai_reply, origin_docs = kb_ask_ai(payload)
         dialog_type = 'dialog'
         papers = []
-        content = queryGLM('你叫epp论文助手，以你的视角重新转述这段话：'+ai_reply, [])
+        content = queryGLM('你叫epp论文助手，以你的视角重新转述这段话：' + ai_reply, [])
         history.extend([{'role': 'assistant', 'content': content}])
     with open(conversation_path, 'w', encoding='utf-8') as f:
         f.write(json.dumps(history))
@@ -418,13 +442,13 @@ def build_kb(request):
     files = []
     for id in paper_id_list:
         p = Paper.objects.get(paper_id=id)
-        pdf_url = p.original_url.replace('abs/','pdf/') + '.pdf'
-        local_path = settings.PAPERS_URL  + str(p.paper_id) + '.pdf'
+        pdf_url = p.original_url.replace('abs/', 'pdf/') + '.pdf'
+        local_path = settings.PAPERS_URL + str(p.paper_id) + '.pdf'
         if not os.path.exists(local_path):
             downloadPaper(pdf_url, local_path)
         files.append(
             ('files', (p.title + '.pdf', open(local_path, 'rb'),
-                'application/vnd.openxmlformats-officedocument.presentationml.presentation')))
+                       'application/vnd.openxmlformats-officedocument.presentationml.presentation')))
     print('下载完毕')
     upload_temp_docs_url = f'http://{settings.REMOTE_MODEL_BASE_PATH}/knowledge_base/upload_temp_docs'
     try:
