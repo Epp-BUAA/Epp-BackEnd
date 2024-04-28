@@ -95,10 +95,11 @@ urlpatterns = [
                   path("api/study/getPaperPDF", get_paper_url),
                   path("api/study/reDoPaperStudy", re_do_paper_study),
                   path("api/study/clearConversation", clear_conversation),
+                    path("api/study/generateAbstractReport", create_abstract_report),
                   # 本地向量库初始化
                   path("api/init/localVDBInit", local_vdb_init),
                   
                   # 综述摘要生成
-                   path("api/generateSummaryReport", generate_summary),
-                   path("api/generateAbstractReport", create_abstract_report),
+                   path("api/summary/generateSummaryReport", generate_summary),
+                   path("api/summary/generateAbstractReport", create_abstract_report),
               ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

@@ -195,4 +195,4 @@ LOCAL_FAISS_NAME = "paper_index.faiss"
 LOCAL_METADATA_NAME = "paper_metadata.pkl"
 
 WIN_WKHTMLTOPDF_PATH = 'resource/wkhtmltopdf/bin/wkhtmltopdf.exe'  # 安装位置
-LINUX_WKHTMLTOPDF_PATH = '/usr/local/bin/wkhtmltopdf'  # 安装位置
+LINUX_WKHTMLTOPDF_PATH = '/usr/bin/wkhtmltopdf'  # 安装位置

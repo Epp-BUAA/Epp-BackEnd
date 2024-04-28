@@ -425,7 +425,7 @@ def build_kb(request):
         files.append(
             ('files', (p.title + '.pdf', open(local_path, 'rb'),
                 'application/vnd.openxmlformats-officedocument.presentationml.presentation')))
-    
+    print('下载完毕')
     upload_temp_docs_url = f'http://{settings.REMOTE_MODEL_BASE_PATH}/knowledge_base/upload_temp_docs'
     try:
         response = requests.post(upload_temp_docs_url, files=files)
