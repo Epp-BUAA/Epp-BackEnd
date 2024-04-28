@@ -228,7 +228,7 @@ def vector_query(request):
     for p in filtered_papers:
         filtered_papers_list.append(p.to_dict())
 
-    return JsonResponse({"paper_infos": filtered_papers_list, 'ai_reply': ai_reply, 'keywords': keywords}, status=200)
+    return JsonResponse({"paper_infos": filtered_papers_list, 'ai_reply': ai_reply, 'keywords': keywords, 'search_record_id' : search_record.search_record_id}, status=200)
 
 
 @require_http_methods(["GET"])
@@ -358,20 +358,12 @@ def dialog_query(request):
         username = 'sanyuba'
     data = json.loads(request.body)
     message = data.get('message')
-    keyword = data.get('keyword')
+    search_record_id = data.get('search_record_id')
     kb_id = data.get('kb_id')
     user = User.objects.filter(username=username).first()
     if user is None:
         return JsonResponse({'error': '用户不存在'}, status=404)
-    search_record = SearchRecord.objects.filter(user_id=user.user_id, keyword=keyword).first()
-    if search_record is None:
-        # 创建新的聊天记录
-        search_record = SearchRecord.objects.create(user_id=user.user_id, keyword=keyword)
-        search_record.conversation_path = settings.USER_SEARCH_CONSERVATION_PATH + '/' + str(
-            search_record.search_record_id) + '.json'
-        search_record.date = datetime.datetime.now()
-        search_record.save()
-    # 历史记录的json文件名称和search_record_id一致
+    search_record = SearchRecord.objects.filter(search_record_id=search_record_id).first()
     conversation_path = settings.USER_SEARCH_CONSERVATION_PATH + '/' + str(search_record.search_record_id) + '.json'
     history = []
     if os.path.exists(conversation_path):
