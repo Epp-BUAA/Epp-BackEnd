@@ -339,7 +339,7 @@ def dialog_query(request):
     data = json.loads(request.body)
     message = data.get('message')
     keyword = data.get('keyword')
-    kb_id = data.get('tmp_kb_id')
+    kb_id = data.get('kb_id')
     user = User.objects.filter(username=username).first()
     if user is None:
         return JsonResponse({'error': '用户不存在'}, status=404)
@@ -356,7 +356,6 @@ def dialog_query(request):
     if os.path.exists(conversation_path):
         c = json.loads(open(conversation_path).read())
         history = c
-    history.extend([{'role': 'user', 'content': message}])
     # 先判断下是不是要查询论文
     prompt = '想象你是一个科研助手，你手上有一些论文，你判断用户的需求是不是要求你去检索新的论文，你的回答只能是\"yes\"或者\"no\"，他的需求是：\n' + message + '\n'
     response_type = queryGLM(prompt)
@@ -373,13 +372,12 @@ def dialog_query(request):
         for paper in filtered_paper:
             papers.append(paper.to_dict())
         print(papers)
-        content = '根据您的需求，我们检索到了如下的论文信息'
-        for i in range(len(papers)):
-            content + '\n' + f'第{i}篇：'
-            # TODO: 这里需要把papers的信息整理到content里面
-            content += f'标题为：{papers[i]['title']}\n'
-            content += f'摘要为：{papers[i]['abstract']}\n'
-        history.extend([{'role': 'assistant', 'content': content}])
+        content = '根据您的需求，我们检索到了一些论文信息'
+        # for i in range(len(papers)):
+        #     content + '\n' + f'第{i}篇：'
+        #     # TODO: 这里需要把papers的信息整理到content里面
+        #     content += f'标题为：{papers[i]["title"]}\n'
+        #     content += f'摘要为：{papers[i]["abstract"]}\n'
     else:
         
         ############################################################
@@ -391,10 +389,12 @@ def dialog_query(request):
             
         input_history = history.copy()[-5:] if len(history) > 5 else history.copy()
         print(input_history)
+        print('kb_id:', kb_id)
+        print('message:', message)
         payload = json.dumps({
             "query": message,
             "knowledge_id": kb_id,
-            "history": input_history,
+            "history": list(input_history),
             "prompt_name": "text"  # 使用历史记录对话模式
         })
         ai_reply, origin_docs = kb_ask_ai(payload)
@@ -402,6 +402,7 @@ def dialog_query(request):
         dialog_type = 'dialog'
         papers = []
         content = queryGLM('你叫epp论文助手，以你的视角重新转述这段话：'+ai_reply, [])
+        history.extend([{'role': 'user', 'content': message}])
         history.extend([{'role': 'assistant', 'content': content}])
     with open(conversation_path, 'w', encoding='utf-8') as f:
         f.write(json.dumps(history))
