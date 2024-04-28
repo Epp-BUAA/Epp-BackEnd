@@ -312,11 +312,11 @@ def dialog_query(request):
     if search_record is None:
         # 创建新的聊天记录
         search_record = SearchRecord.objects.create(user_id=user.user_id, keyword=keyword)
-        search_record.conversation_path = settings.USER_SEARCH_CONSERVATION_PATH + '/' + search_record.search_record_id + '.json'
+        search_record.conversation_path = settings.USER_SEARCH_CONSERVATION_PATH + '/' + str(search_record.search_record_id) + '.json'
         search_record.date = datetime.datetime.now()
         search_record.save()
     # 历史记录的json文件名称和search_record_id一致
-    conversation_path = settings.USER_SEARCH_CONSERVATION_PATH + '/' + search_record.search_record_id + '.json'
+    conversation_path = settings.USER_SEARCH_CONSERVATION_PATH + '/' + str(search_record.search_record_id) + '.json'
     history = []
     if os.path.exists(conversation_path):
         c = json.loads(open(conversation_path).read())
@@ -328,6 +328,7 @@ def dialog_query(request):
     papers = []
     dialog_type = ''
     content = ''
+    print(response_type)
     if 'yes' in response_type:  # 担心可能有句号等等
         # 查询论文，TODO:接入向量化检索
         # filtered_paper = query_with_vector(message) # 旧版的接口，换掉了 2024.4.28
