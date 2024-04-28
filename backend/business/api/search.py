@@ -423,8 +423,8 @@ def dialog_query(request):
         dialog_type = 'dialog'
         papers = []
         content = queryGLM('你叫epp论文助手，以你的视角重新转述这段话：'+ai_reply, [])
-        history.extend([{'role': 'user', 'content': message}])
-        history.extend([{'role': 'assistant', 'content': content}])
+        history['conversation'].extend([{'role': 'user', 'content': message}])
+        history['conversation'].extend([{'role': 'assistant', 'content': content}])
     with open(conversation_path, 'w', encoding='utf-8') as f:
         f.write(json.dumps(history))
     res = {
@@ -459,8 +459,7 @@ def build_kb(request):
         paper_nam = str(p.paper_id)
         print(local_path)
         print(pdf_url)
-        if not os.path.exists(local_path + '.pdf'):
-            downloadPaper(pdf_url, paper_nam)
+        downloadPaper(pdf_url, paper_nam)
         files.append(
             ('files', (p.title + '.pdf', open(local_path + '.pdf', 'rb'),
                 'application/vnd.openxmlformats-officedocument.presentationml.presentation')))
