@@ -321,7 +321,7 @@ def dialog_query(request):
     if os.path.exists(conversation_path):
         c = json.loads(open(conversation_path).read())
         history = c
-    history.append({'role': 'user', 'content': message})
+    history.extend([{'role': 'user', 'content': message}])
     # 先判断下是不是要查询论文
     prompt = '想象你是一个科研助手，帮我判断一下这段用户的需求是不是要求查找一些论文，你的回答只能是\"yes\"或者\"no\"，他的需求是：\n' + message + '\n'
     response_type = queryGLM(prompt)
@@ -343,7 +343,7 @@ def dialog_query(request):
             # TODO: 这里需要把papers的信息整理到content里面
             content += f'标题为：{papers[i].title}\n'
             content += f'摘要为：{papers[i].abstract}\n'
-        history.append({'role': 'assistant', 'content': content})
+        history.extend([{'role': 'assistant', 'content': content}])
     else:
         
         ############################################################
@@ -397,7 +397,7 @@ def dialog_query(request):
         dialog_type = 'dialog'
         papers = []
         content = queryGLM('你叫epp论文助手，以你的视角重新转述这段话：'+ai_reply, [])
-        history.append({'role': 'assistant', 'content': content})
+        history.extend([{'role': 'assistant', 'content': content}])
     with open(conversation_path, 'w', encoding='utf-8') as f:
         f.write(json.dumps(history))
     res = {
