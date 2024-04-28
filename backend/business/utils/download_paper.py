@@ -15,6 +15,8 @@ def downloadPaper(url, filename):
         print(filename)
         if not filename.endswith('.pdf'):
             filepath = os.path.join(PAPERS_PATH, filename + '.pdf')
+        else:
+            filepath = os.path.join(PAPERS_PATH, filename)
         with open(filepath, 'wb') as f:
             f.write(response.content)
         return filepath
