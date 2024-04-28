@@ -61,3 +61,5 @@ urllib3==2.2.1
 wheel==0.41.2
 yarl==1.9.4
 faiss-cpu==1.8.0
+markdown==3.3.6
+pdfkit==0.6.1

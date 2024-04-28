@@ -16,14 +16,15 @@ import numpy as np
 import requests
 from business.utils import reply
 from business.utils.paper_vdb_init import get_filtered_paper
+from business.utils.download_paper import downloadPaper
 
 
 def queryGLM(msg: str, history=None) -> str:
     '''
     对chatGLM3-6B发出一次单纯的询问
     '''
-    openai.api_base = settings.REMOTE_CHATCHAT_GLM3_OPENAI_PATH
-    openai.api_key = "empty"
+    openai.api_base = f'http://{settings.REMOTE_CHATCHAT_GLM3_OPENAI_PATH}/v1'
+    openai.api_key = "none"
     history.append({"role": "user", "content": msg})
     response = openai.ChatCompletion.create(
         model="chatglm3-6b",
@@ -34,50 +35,8 @@ def queryGLM(msg: str, history=None) -> str:
     history.append({"role": "assistant", "content": response.choices[0].message.content})
     return response.choices[0].message.content
 
-
 from django.views.decorators.http import require_http_methods
 from business.models.paper import Paper
-
-
-def query_with_vector(search_content: str) -> list[Paper]:
-    '''
-    本函数用于向量化检索
-    '''
-    file_query_url = f'http://{settings.REMOTE_MODEL_BASE_PATH}/knowledge_base/search_docs'
-    english_search_content = queryGLM("请把这段话翻译为英文：" + search_content)
-    data = {
-        'query': english_search_content,
-        'knowledge_base_name': 'ZJY'  # 这是最大的知识库
-    }
-    response = requests.post(file_query_url, json=data)
-    ps = response.json().get('data')
-    # 下来是把这堆数据转化为json
-    '''
-    ps的格式为
-    [
-        {
-            "page_content":"六、实验设置 为验证我们提出的“变色龙”模型在攻击性，隐蔽性与动态性上是否如理论预期， 我们将在这一部分进行大量有说服力的对比实验与消融实验作为说明。 6.1 数据集与预处理 6.1.1 CUHK-SYSU 该数据集是由香港中文大学与中山大学开源的行人搜索数据集，主要从电影片段 和街拍中构造，共包含 17k 余张图像与 8k 余查询人物，我们选择其全部的训练集训练 我们的模型，并使用 Test50G(1 张 Query 图片对应 50 张 Gallery 图片)来评估我们的攻击 模型。",
-            "metadata":{
-                "source":"变色龙——行人搜索智能攻击方案.pdf",
-                "id":"f9f4bad8-b627-4b29-90f2-6a1f2fef63a0"
-                },
-            "type":"Document",
-            "id":"f9f4bad8-b627-4b29-90f2-6a1f2fef63a0",
-            "score":0.940712571144104
-        }
-    ]
-    不出意外，metadata里面的pdf应该是arxiv的名字，所以得根据这个来锁定他的url，然后确定是哪个paper实体
-    '''
-    ps.sort(key=lambda x: x.get('score'), reverse=True)
-    filtered_paper = []
-    for p in ps:
-        paper_name = p.get('metadata').get('source')
-        original_url = 'https://arxiv.org/abs/' + paper_name.spilt('/')[-1].replace('.pdf', '')
-        print(original_url)
-        p = Paper.objects.filter(original_url=original_url).first()
-        if p is not None:
-            filtered_paper.append(p)
-    return filtered_paper
 
 
 def search_papers_by_keywords(keywords):
@@ -258,7 +217,7 @@ def vector_query(request):
     filtered_papers_list = []
     for p in filtered_papers:
         filtered_papers_list.append(p.to_dict())
-
+        
     return JsonResponse({"paper_infos": filtered_papers_list, 'ai_reply': ai_reply, 'keywords': keywords}, status=200)
 
 @require_http_methods(["GET"])
@@ -304,6 +263,8 @@ def dialog_query(request):
             paper_ids:[
                 string, //很多个paper_id
             ]
+            ,
+            tmp_kb_id : string // 临时知识库id
         }
         
     :return: 返回一个json对象，格式为：
@@ -343,6 +304,7 @@ def dialog_query(request):
     message = data.get('message')
     keyword = data.get('keyword')
     paper_ids = data.get('paper_ids')
+    kb_id = data.get('tmp_kb_id')
     user = User.objects.filter(username=username).first()
     if user is None:
         return JsonResponse({'error': '用户不存在'}, status=404)
@@ -368,7 +330,8 @@ def dialog_query(request):
     content = ''
     if 'yes' in response_type:  # 担心可能有句号等等
         # 查询论文，TODO:接入向量化检索
-        filtered_paper = query_with_vector(message)
+        # filtered_paper = query_with_vector(message) # 旧版的接口，换掉了 2024.4.28
+        filtered_paper = get_filtered_paper(text=message, k=5)
         dialog_type = 'query'
         papers = []
         for paper in filtered_paper:
@@ -381,14 +344,60 @@ def dialog_query(request):
             content += f'摘要为：{papers[i].abstract}\n'
         history.append({'role': 'assistant', 'content': content})
     else:
+        
+        ############################################################
+        
+        ## 这部分重新重构了，按照方法是通过将左侧的文章重构成为一个知识库进行检索
+        
+        ###########################################################
         # 对话，保存3轮最多了，担心吃不下
-        print(history.copy()[-5:])
-        response = queryGLM(message, history.copy()[-5:])
+        def kb_ask_ai(payload):
+            ''''
+            payload = json.dumps({
+                "query": query,
+                "knowledge_id": tmp_kb_id,
+                "history": conversation_history[-10:],
+                "prompt_name": "text"  # 使用历史记录对话模式
+            })
+            payload = json.dumps({
+                "query": query,
+                "knowledge_id": tmp_kb_id,
+                "prompt_name": "default"  # 使用普通对话模式
+            })
+            '''
+            file_chat_url = f'http://{settings.REMOTE_MODEL_BASE_PATH}/chat/file_chat'
+            headers = {
+                'Content-Type': 'application/json'
+            }
+            response = requests.request("POST", file_chat_url, data=payload, headers=headers, stream=False)
+            ai_reply = ""
+            origin_docs = []
+            print(response)
+            for line in response.iter_lines():
+                if line:
+                    decoded_line = line.decode('utf-8')
+                    if decoded_line.startswith('data'):
+                        data = decoded_line.replace('data: ', '')
+                        data = json.loads(data)
+                        ai_reply += data["answer"]
+                        for doc in data["docs"]:
+                            doc = str(doc).replace("\n", " ").replace("<span style='color:red'>", "").replace("</span>", "")
+                            origin_docs.append(doc)
+            return ai_reply, origin_docs
+        input_history = history.copy()[-5:] if len(history) > 5 else history.copy()
+        print(input_history)
+        payload = json.dumps({
+            "query": message,
+            "knowledge_id": kb_id,
+            "history": input_history,
+            "prompt_name": "text"  # 使用历史记录对话模式
+        })
+        ai_reply, origin_docs = kb_ask_ai(payload)
         dialog_type = 'dialog'
         papers = []
-        content = response
+        content = queryGLM('你叫epp论文助手，以你的视角重新转述这段话：'+ai_reply, [])
         history.append({'role': 'assistant', 'content': content})
-    with open(conversation_path, 'w') as f:
+    with open(conversation_path, 'w', encoding='utf-8') as f:
         f.write(json.dumps(history))
     res = {
         'dialog_type': dialog_type,
@@ -396,6 +405,40 @@ def dialog_query(request):
         'content': content
     }
     return JsonResponse(res, status=200)
+
+
+@require_http_methods(["POST"])
+def build_kb(request):
+    ''''
+    这个方法是论文循证
+    输入为paper_id_list，重新构建一个知识库
+    '''
+    data = json.loads(request.body)
+    paper_id_list = data.get('paper_id_list')
+    files = []
+    for id in paper_id_list:
+        p = Paper.objects.get(paper_id=id)
+        pdf_url = p.original_url.replace('abs/','pdf/') + '.pdf'
+        local_path = settings.PAPERS_URL  + str(p.paper_id) + '.pdf'
+        if not os.path.exists(local_path):
+            downloadPaper(pdf_url, local_path)
+        files.append(
+            ('files', (p.title + '.pdf', open(local_path, 'rb'),
+                'application/vnd.openxmlformats-officedocument.presentationml.presentation')))
+    print('下载完毕')
+    upload_temp_docs_url = f'http://{settings.REMOTE_MODEL_BASE_PATH}/knowledge_base/upload_temp_docs'
+    try:
+        response = requests.post(upload_temp_docs_url, files=files)
+    except Exception as e:
+        return reply.fail(msg="连接模型服务器失败")
+    # 关闭文件，防止内存泄露
+    for k, v in files:
+        v[1].close()
+    if response.status_code != 200:
+        return reply.fail(msg="连接模型服务器失败")
+    tmp_kb_id = response.json()['data']['id']
+    return reply.success({'kb_id': tmp_kb_id})
+
 
 @require_http_methods(["DELETE"])
 def flush(request):
