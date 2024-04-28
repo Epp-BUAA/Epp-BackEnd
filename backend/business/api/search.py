@@ -449,8 +449,7 @@ def build_kb(request):
 
         pdf_url = p.original_url.replace('abs/', 'pdf/') + '.pdf'
         local_path = settings.PAPERS_URL + str(p.paper_id) + '.pdf'
-        if not os.path.exists(local_path):
-            downloadPaper(pdf_url, local_path)
+        downloadPaper(pdf_url, str(p.paper_id))
         files.append(
             ('files', (p.title + '.pdf', open(local_path, 'rb'),
                        'application/vnd.openxmlformats-officedocument.presentationml.presentation')))
