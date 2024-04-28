@@ -389,7 +389,7 @@ def dialog_query(request):
         papers = []
         content = response
         history.append({'role': 'assistant', 'content': content})
-    with open(conversation_path, 'w') as f:
+    with open(conversation_path, 'w', encoding='utf-8') as f:
         f.write(json.dumps(history))
     res = {
         'dialog_type': dialog_type,
