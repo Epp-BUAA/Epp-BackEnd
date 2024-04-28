@@ -22,8 +22,8 @@ def queryGLM(msg: str, history=None) -> str:
     '''
     对chatGLM3-6B发出一次单纯的询问
     '''
-    openai.api_base = settings.REMOTE_CHATCHAT_GLM3_OPENAI_PATH
-    openai.api_key = "empty"
+    openai.api_base = f'http://{settings.REMOTE_CHATCHAT_GLM3_OPENAI_PATH}/v1'
+    openai.api_key = "none"
     history.append({"role": "user", "content": msg})
     response = openai.ChatCompletion.create(
         model="chatglm3-6b",
@@ -33,7 +33,6 @@ def queryGLM(msg: str, history=None) -> str:
     print("ChatGLM3-6B：", response.choices[0].message.content)
     history.append({"role": "assistant", "content": response.choices[0].message.content})
     return response.choices[0].message.content
-
 
 from django.views.decorators.http import require_http_methods
 from business.models.paper import Paper

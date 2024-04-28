@@ -12,13 +12,14 @@ from django.conf import settings
 from business.models import User, UserDocument, Paper, abstract_report
 from django.views.decorators.http import require_http_methods
 import os
+from business.utils.md_pdf import md2pdf
 
 
 ##################################新建一个临时知识库，多问几次，然后通过一个模板生成综述#######################################
 
 ###################综述生成##########################
 
-def quertGLM(msg: str, history=None) -> str:
+def queryGLM(msg: str, history=None) -> str:
     '''
     对chatGLM3-6B发出一次单纯的询问
     '''
@@ -70,28 +71,28 @@ def generate_summary(request):
         paper_themes = []
         paper_situations = []
         # 先把每篇论文需要的信息生成好了
-        for paper_id in paper_ids:
-            p = Paper.objects.filter(document_id=paper_id).first()
+        for id in paper_ids:
+            p = Paper.objects.filter(paper_id=id).first()
             content_prompt = '将这篇论文的摘要以第三人称的方式复述一遍，摘要如下：\n' + p.abstract
-            paper_content.append(quertGLM(content_prompt, []))
+            paper_content.append(queryGLM(content_prompt, []))
             content_prompt = '将这篇论文的题目转化为中文：\n' + p.title
-            paper_themes.append(quertGLM(content_prompt, []))
+            paper_themes.append(queryGLM(content_prompt, []))
             content_prompt = '将这篇论文的现状部分以第三人称的方式复述一遍：\n' + p.abstract
-            paper_situations.append(quertGLM(content_prompt, []))
+            paper_situations.append(queryGLM(content_prompt, []))
             content_prompt = '将这篇论文的结论和展望部分以第三人称的方式复述一遍：\n' + p.abstract
-            paper_conclusions.append(quertGLM(content_prompt, []))
+            paper_conclusions.append(queryGLM(content_prompt, []))
         # 生成引言
         introduction_prompt = '请根据以下信息生成综述的引言：\n'
         for i in range(len(paper_ids)):
             introduction_prompt += '第' + str(i+1) + '篇论文的题目是：' + paper_themes[i] + '\n'
             introduction_prompt += '第' + str(i+1) + '篇论文的现状部分是：' + paper_situations[i] + '\n'
-        introduction = quertGLM(introduction_prompt, [])
+        introduction = queryGLM(introduction_prompt, [])
         # 生成结论
         conclusion_prompt = '请根据以下信息生成综述的结论：\n'
         for i in range(len(paper_ids)):
             conclusion_prompt += '第' + str(i+1) + '篇论文的题目是：' + paper_themes[i] + '\n'
             conclusion_prompt += '第' + str(i+1) + '篇论文的结论部分是：' + paper_conclusions[i] + '\n'
-        conclusion = quertGLM(conclusion_prompt, [])
+        conclusion = queryGLM(conclusion_prompt, [])
         
         # 生成综述
         summary = '# 引言\n' + introduction + '\n'
@@ -102,12 +103,17 @@ def generate_summary(request):
         summary += '# 结论\n' + conclusion + '\n'
         # 修改语病，更加通顺
         prompt = '这是一篇综述，请让他更加通顺：\n' + summary
-        response = quertGLM(prompt, [])
-        with open(report.report_path, 'w') as f:
+        response = queryGLM(prompt, [])
+        md_path = settings.USER_REPORTS_PATH + '/' + str(report.report_id) + '.md'
+        pdf_path = settings.USER_REPORTS_PATH + '/' + str(report.report_id) + '.pdf'
+        with open(md_path, 'w', encoding='utf-8') as f:
             f.write(response)
-            
-        print(response)
         
+        md2pdf(md_path, pdf_path)
+        report.report_path = pdf_path
+        report.save()
+        os.remove(md_path)
+        print(response)
         return JsonResponse({'message': "综述生成成功"}, status=200)
     except Exception as e:
         print(e)
@@ -198,11 +204,13 @@ def create_abstract_report(request):
             # 下载下来
             downloadPaper(url=pdf_url, filename=str(p.paper_id))
         content_type = '.pdf'
-        title = p.title
+        title = str(p.paper_id)
     print('下载完毕')
 
     from business.models.abstract_report import AbstractReport
-    report_path = os.path.join(settings.USER_REPORTS_PATH, title + '.md')
+    report_path = os.path.join(settings.USER_REPORTS_PATH, str(title) + '.md')
+    print(report_path)
+    pdf_path = os.path.join(settings.USER_REPORTS_PATH, str(title) + '.pdf')
     if os.path.exists(report_path):
         content = open(report_path, 'r').read()
         print(content)
@@ -215,7 +223,7 @@ def create_abstract_report(request):
     local_path = local_path[1:] if local_path.startswith('/') else local_path
     print(local_path)
     files = [
-        ('files', (title + content_type, open(local_path, 'rb'),
+        ('files', (str(title) + content_type, open(local_path, 'rb'),
                    'application/vnd.openxmlformats-officedocument.presentationml.presentation'))
     ]
     response = requests.post(upload_temp_docs_url, files=files)
@@ -251,8 +259,7 @@ def create_abstract_report(request):
     payload_problem = json.dumps({
         "query": query_problem,
         "knowledge_id": tmp_kb_id,
-        "prompt_name": "default",  # 使用普通对话模式
-        "score_threshold" : 0.1
+        "prompt_name": "default"
     })
     response_problem,_ = ask_ai_single_paper(payload=payload_problem)
     print(_)
@@ -298,11 +305,14 @@ def create_abstract_report(request):
     # 修改语病，更加通顺
     print(summary)
     
-    prompt = '这是一篇摘要，请让他更加通顺：\n' + summary
-    response = quertGLM(prompt, [])
+    prompt = '这是一篇摘要，请让他更加通顺，结果使用简体中文：\n' + summary
+    response = queryGLM(prompt, [])
     print(response)
-    with open(report_path, 'w') as f:
+    pdf_path = os.path.join(settings.USER_REPORTS_PATH, str(title) + '.pdf')
+    with open(report_path, 'w', encoding='utf-8') as f:
         f.write(response)
-        
+    md2pdf(report_path, pdf_path)
+    ar.report_path = pdf_path
+    ar.save()
     return success({'summary': response}, msg="生成摘要成功")
     

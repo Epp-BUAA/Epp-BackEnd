@@ -193,3 +193,6 @@ VECTOR_DIM = 1024
 LOCAL_VECTOR_DATABASE_PATH = 'resource/vector_database_for_search/'
 LOCAL_FAISS_NAME = "paper_index.faiss"
 LOCAL_METADATA_NAME = "paper_metadata.pkl"
+
+WIN_WKHTMLTOPDF_PATH = 'resource/wkhtmltopdf/bin/wkhtmltopdf.exe'  # 安装位置
+LINUX_WKHTMLTOPDF_PATH = '/usr/local/bin/wkhtmltopdf'  # 安装位置
