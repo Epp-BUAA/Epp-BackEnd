@@ -25,14 +25,15 @@ def queryGLM(msg: str, history=None) -> str:
     '''
     openai.api_base = f'http://{settings.REMOTE_CHATCHAT_GLM3_OPENAI_PATH}/v1'
     openai.api_key = "none"
-    history.append({"role": "user", "content": msg})
+    if history is None:
+        history = [{'role' : 'user', 'content': msg}]
+    else:
+        history.extend([{'role' : 'user', 'content': msg}])
     response = openai.ChatCompletion.create(
         model="chatglm3-6b",
         messages=history,
         stream=False
     )
-    print("ChatGLM3-6B：", response.choices[0].message.content)
-    history.append({"role": "assistant", "content": response.choices[0].message.content})
     return response.choices[0].message.content
 
 
@@ -271,6 +272,42 @@ def get_user_search_history(request):
 
     return reply.success({"keywords": list(set(keywords))[:10]})
 
+<<<<<<< HEAD
+=======
+def kb_ask_ai(payload):
+    ''''
+    payload = json.dumps({
+        "query": query,
+        "knowledge_id": tmp_kb_id,
+        "history": conversation_history[-10:],
+        "prompt_name": "text"  # 使用历史记录对话模式
+    })
+    payload = json.dumps({
+        "query": query,
+        "knowledge_id": tmp_kb_id,
+        "prompt_name": "default"  # 使用普通对话模式
+    })
+    '''
+    file_chat_url = f'http://{settings.REMOTE_MODEL_BASE_PATH}/chat/file_chat'
+    headers = {
+        'Content-Type': 'application/json'
+    }
+    response = requests.request("POST", file_chat_url, data=payload, headers=headers, stream=False)
+    ai_reply = ""
+    origin_docs = []
+    print(response)
+    for line in response.iter_lines():
+        if line:
+            decoded_line = line.decode('utf-8')
+            if decoded_line.startswith('data'):
+                data = decoded_line.replace('data: ', '')
+                data = json.loads(data)
+                ai_reply += data["answer"]
+                for doc in data["docs"]:
+                    doc = str(doc).replace("\n", " ").replace("<span style='color:red'>", "").replace("</span>", "")
+                    origin_docs.append(doc)
+    return ai_reply, origin_docs
+>>>>>>> 38d3cade6ff0c7fb83e7fd9f1064697ec514cece
 
 @require_http_methods(["POST"])
 def dialog_query(request):
@@ -320,10 +357,11 @@ def dialog_query(request):
     """
     import sys, os
     username = request.session.get('username')
+    if username is None:
+        username = 'sanyuba'
     data = json.loads(request.body)
     message = data.get('message')
     keyword = data.get('keyword')
-    paper_ids = data.get('paper_ids')
     kb_id = data.get('tmp_kb_id')
     user = User.objects.filter(username=username).first()
     if user is None:
@@ -344,7 +382,7 @@ def dialog_query(request):
         history = c
     history.extend([{'role': 'user', 'content': message}])
     # 先判断下是不是要查询论文
-    prompt = '想象你是一个科研助手，帮我判断一下这段用户的需求是不是要求查找一些论文，你的回答只能是\"yes\"或者\"no\"，他的需求是：\n' + message + '\n'
+    prompt = '想象你是一个科研助手，你手上有一些论文，你判断用户的需求是不是要求你去检索新的论文，你的回答只能是\"yes\"或者\"no\"，他的需求是：\n' + message + '\n'
     response_type = queryGLM(prompt)
     papers = []
     dialog_type = ''
@@ -358,12 +396,13 @@ def dialog_query(request):
         papers = []
         for paper in filtered_paper:
             papers.append(paper.to_dict())
+        print(papers)
         content = '根据您的需求，我们检索到了如下的论文信息'
-        for i in len(papers):
+        for i in range(len(papers)):
             content + '\n' + f'第{i}篇：'
             # TODO: 这里需要把papers的信息整理到content里面
-            content += f'标题为：{papers[i].title}\n'
-            content += f'摘要为：{papers[i].abstract}\n'
+            content += f'标题为：{papers[i]['title']}\n'
+            content += f'摘要为：{papers[i]['abstract']}\n'
         history.extend([{'role': 'assistant', 'content': content}])
     else:
 
@@ -373,6 +412,7 @@ def dialog_query(request):
 
         ###########################################################
         # 对话，保存3轮最多了，担心吃不下
+<<<<<<< HEAD
         def kb_ask_ai(payload):
             ''''
             payload = json.dumps({
@@ -408,6 +448,9 @@ def dialog_query(request):
                             origin_docs.append(doc)
             return ai_reply, origin_docs
 
+=======
+            
+>>>>>>> 38d3cade6ff0c7fb83e7fd9f1064697ec514cece
         input_history = history.copy()[-5:] if len(history) > 5 else history.copy()
         print(input_history)
         payload = json.dumps({
@@ -417,6 +460,7 @@ def dialog_query(request):
             "prompt_name": "text"  # 使用历史记录对话模式
         })
         ai_reply, origin_docs = kb_ask_ai(payload)
+        print(ai_reply)
         dialog_type = 'dialog'
         papers = []
         content = queryGLM('你叫epp论文助手，以你的视角重新转述这段话：' + ai_reply, [])
@@ -428,7 +472,7 @@ def dialog_query(request):
         'papers': papers,
         'content': content
     }
-    return JsonResponse(res, status=200)
+    return reply.success(res, msg='成功返回对话')
 
 
 @require_http_methods(["POST"])
@@ -442,6 +486,7 @@ def build_kb(request):
     files = []
     for id in paper_id_list:
         p = Paper.objects.get(paper_id=id)
+<<<<<<< HEAD
         pdf_url = p.original_url.replace('abs/', 'pdf/') + '.pdf'
         local_path = settings.PAPERS_URL + str(p.paper_id) + '.pdf'
         if not os.path.exists(local_path):
@@ -449,6 +494,18 @@ def build_kb(request):
         files.append(
             ('files', (p.title + '.pdf', open(local_path, 'rb'),
                        'application/vnd.openxmlformats-officedocument.presentationml.presentation')))
+=======
+        pdf_url = p.original_url.replace('abs/','pdf/') + '.pdf'
+        local_path = settings.PAPERS_URL  + str(p.paper_id)
+        paper_nam = str(p.paper_id)
+        print(local_path)
+        print(pdf_url)
+        if not os.path.exists(local_path + '.pdf'):
+            downloadPaper(pdf_url, paper_nam)
+        files.append(
+            ('files', (p.title + '.pdf', open(local_path + '.pdf', 'rb'),
+                'application/vnd.openxmlformats-officedocument.presentationml.presentation')))
+>>>>>>> 38d3cade6ff0c7fb83e7fd9f1064697ec514cece
     print('下载完毕')
     upload_temp_docs_url = f'http://{settings.REMOTE_MODEL_BASE_PATH}/knowledge_base/upload_temp_docs'
     try:
