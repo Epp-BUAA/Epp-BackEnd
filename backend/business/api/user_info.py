@@ -256,14 +256,66 @@ def notification_list(request):
     if not user:
         return reply.fail(msg="请先正确登录")
 
-    notifications = Notification.objects.filter(user_id=user)
-    data = {'total': len(notifications), 'notifications': []}
-    for notice in notifications:
-        data['notifications'].append({
-            "notification_id": notice.notification_id,
-            "title": notice.title,
-            "content": notice.content,
-            "date": notice.date.strftime("%Y-%m-%d %H:%M:%S"),
-            "is_read": notice.is_read,
-        })
-    return reply.success(data=data, msg='通知列表获取成功')
+    mode = int(request.GET.get('mode'))
+    if mode == 1:
+        notifications = Notification.objects.filter(user_id=user, is_read=False)
+        return reply.success(data={"total": len(notifications)}, msg="未读信息数量获取成功")
+    elif mode == 2:
+        notifications = Notification.objects.filter(user_id=user)
+        data = {'total': len(notifications), 'notifications': []}
+        for notice in notifications:
+            data['notifications'].append({
+                "notification_id": notice.notification_id,
+                "title": notice.title,
+                "content": notice.content,
+                "date": notice.date.strftime("%Y-%m-%d %H:%M:%S"),
+                "is_read": notice.is_read,
+            })
+        return reply.success(data=data, msg='通知列表获取成功')
+    else:
+        return reply.fail(msg='mode参数有误')
+
+
+@require_http_methods('POST')
+def read_notification(request):
+    """ 通知已读 """
+    username = request.session.get('username')
+    user = User.objects.filter(username=username).first()
+    if not user:
+        return reply.fail(msg="请先正确登录")
+
+    params: dict = json.loads(request.body)
+    notification_id = params.get("notification_id", None)
+    if notification_id and len(notification_id) != 0:
+        notice = Notification.objects.filter(user_id=user, notification_id=notification_id).first()
+        notice.is_read = True
+        notice.save()
+    else:
+        for item in Notification.objects.filter(user_id=user, is_read=False):
+            item.is_read = True
+            item.save()
+
+    return reply.success(msg="消息已读完成")
+
+
+@require_http_methods('DELETE')
+def delete_notification(request):
+    """ 删除通知 """
+    username = request.session.get('username')
+    user = User.objects.filter(username=username).first()
+    if not user:
+        return reply.fail(msg="请先正确登录")
+
+    params: dict = json.loads(request.body)
+    notification_ids = params.get("notification_ids", None)  # 需要删除的通知ID数组
+    if not notification_ids or len(notification_ids) == 0:
+        # 清空通知列表
+        notifications_to_remove = Notification.objects.filter(user_id=user)
+    else:
+        # 删除指定通知
+        notifications_to_remove = Notification.objects.filter(
+            Q(user_id=user) & Q(notification_id__in=notification_ids))
+    print(len(notifications_to_remove))
+    notifications_to_remove.delete()
+
+    return reply.success(msg="删除成功")
