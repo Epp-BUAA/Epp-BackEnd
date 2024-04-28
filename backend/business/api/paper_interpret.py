@@ -11,9 +11,6 @@ from urllib.parse import quote
 import requests
 from django.http import JsonResponse, HttpRequest
 from django.views.decorators.http import require_http_methods
-
-import PyPDF2
-from PyPDF2 import PdfReader
 from django.conf import settings
 from business.models import UserDocument, FileReading, Paper, User
 from business.utils import reply

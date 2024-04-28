@@ -10,10 +10,11 @@ def downloadPaper(url, filename):
     """
     下载文献到服务器
     """
-    url.replace('arxiv.org', 'xxx.itp.ac.cn')
     response = requests.get(url)
     if response.status_code == 200:
-        filepath = os.path.join(PAPERS_PATH, filename + '.pdf')
+        print(filename)
+        if not filename.endswith('.pdf'):
+            filepath = os.path.join(PAPERS_PATH, filename + '.pdf')
         with open(filepath, 'wb') as f:
             f.write(response.content)
         return filepath
