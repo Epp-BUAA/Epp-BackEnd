@@ -112,7 +112,7 @@ def generate_summary(request):
         md2pdf(md_path, pdf_path)
         report.report_path = pdf_path
         report.save()
-        os.remove(md_path)
+        # os.remove(md_path)
         print(response)
         return JsonResponse({'message': "综述生成成功"}, status=200)
     except Exception as e:
