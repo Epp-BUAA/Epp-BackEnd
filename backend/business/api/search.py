@@ -492,3 +492,60 @@ def flush(request):
         if os.path.exists(conversation_path):
             os.remove(conversation_path)
         HttpRequest('清空成功', status=200)
+        
+@require_http_methods(["POST"])
+def get_search_record(request):
+    '''
+    本函数用于获取搜索记录
+    '''
+    username = request.session.get('username')
+    data = json.loads(request.body)
+    search_record_id = data.get('search_record_id')
+    search_record = SearchRecord.objects.filter(search_record_id=search_record_id).first()
+    if search_record is None:
+        return JsonResponse({'error': '搜索记录不存在'}, status=404)
+    else:
+        conversation_path = search_record.conversation_path
+        if os.path.exists(conversation_path):
+            with open(conversation_path, 'r') as f:
+                history = json.load(f)
+            paper_id_list = []
+            for paper in search_record.related_papers.all():
+                paper_id_list.append(paper.paper_id)
+            files = []
+            for id in paper_id_list:
+                p = Paper.objects.get(paper_id=id)
+
+                pdf_url = p.original_url.replace('abs/', 'pdf/') + '.pdf'
+                local_path = settings.PAPERS_URL + str(p.paper_id) + '.pdf'
+                downloadPaper(pdf_url, str(p.paper_id))
+                files.append(
+                    ('files', (p.title + '.pdf', open(local_path, 'rb'),
+                            'application/vnd.openxmlformats-officedocument.presentationml.presentation')))
+
+                pdf_url = p.original_url.replace('abs/','pdf/') + '.pdf'
+                local_path = settings.PAPERS_URL  + str(p.paper_id)
+                paper_nam = str(p.paper_id)
+                print(local_path)
+                print(pdf_url)
+                downloadPaper(pdf_url, paper_nam)
+                files.append(
+                    ('files', (p.title + '.pdf', open(local_path + '.pdf', 'rb'),
+                        'application/vnd.openxmlformats-officedocument.presentationml.presentation')))
+
+            print('下载完毕')
+            upload_temp_docs_url = f'http://{settings.REMOTE_MODEL_BASE_PATH}/knowledge_base/upload_temp_docs'
+            try:
+                response = requests.post(upload_temp_docs_url, files=files)
+            except Exception as e:
+                return reply.fail(msg="连接模型服务器失败")
+            # 关闭文件，防止内存泄露
+            for k, v in files:
+                v[1].close()
+            if response.status_code != 200:
+                return reply.fail(msg="连接模型服务器失败")
+            tmp_kb_id = response.json()['data']['id']
+            
+            return JsonResponse({'coversation' : history['conversation'], 'kb_id' : tmp_kb_id}, status=200)
+        else:
+            return JsonResponse({'error': '搜索记录不存在'}, status=404)
