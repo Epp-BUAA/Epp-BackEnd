@@ -55,6 +55,9 @@ SESSION_COOKIE_SECURE = False
 SESSION_COOKIE_SAMESITE = 'None'
 CORS_ALLOW_CREDENTIALS = True
 
+# 设置iframe跨域
+X_FRAME_OPTIONS = 'ALLOWALL'
+
 # 配置为true会出问题
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:8080',
@@ -186,7 +189,6 @@ MAX_Similarity = 0.8  # 最大相似度，介于-1和1之间，不确定
 REMOTE_MODEL_BASE_PATH = '172.17.62.88:7861'
 # 使用openai流式接口调用glm3大模型，不附带知识库
 REMOTE_CHATCHAT_GLM3_OPENAI_PATH = '172.17.62.88:20005'
-
 
 # 语义检索相关
 VECTOR_DIM = 1024
