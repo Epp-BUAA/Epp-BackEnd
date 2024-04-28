@@ -408,7 +408,7 @@ def dialog_query(request):
         ###########################################################
         # 对话，保存3轮最多了，担心吃不下
 
-        input_history = history.copy()[-5:] if len(history) > 5 else history.copy()
+        input_history = history['conversation'].copy()[-5:] if len(history['conversation']) > 5 else history['conversation'].copy()
         print(input_history)
         print('kb_id:', kb_id)
         print('message:', message)
