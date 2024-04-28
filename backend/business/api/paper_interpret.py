@@ -138,7 +138,7 @@ def insert_file_2_kb(file_reading_id, tmp_kb_id):
 def get_tmp_kb_id(file_reading_id):
     with open(settings.USER_READ_MAP_PATH, "r") as f:
         f_2_kb_map = json.load(f)
-    print(f_2_kb_map)
+    # print(f_2_kb_map)
     if str(file_reading_id) in f_2_kb_map:
         return f_2_kb_map[str(file_reading_id)]
     else:
@@ -197,6 +197,8 @@ def create_paper_study(request):
 
     # 上传到远端服务器, 创建新的临时知识库
     upload_temp_docs_url = f'http://{settings.REMOTE_MODEL_BASE_PATH}/knowledge_base/upload_temp_docs'
+
+    print(open(local_path, 'rb'))
     files = [
         ('files', (title + content_type, open(local_path, 'rb'),
                    'application/vnd.openxmlformats-officedocument.presentationml.presentation'))
@@ -446,6 +448,7 @@ def do_paper_study(request):
     with open(fr.conversation_path, 'r') as f:
         conversation_history = json.load(f)
 
+    print(tmp_kb_id)
     conversation_history = list(conversation_history.get('conversation'))  # List[Dict]
     # print(conversation_history, query, tmp_kb_id)
     ai_reply, origin_docs, question_reply = do_file_chat(conversation_history, query, tmp_kb_id)
@@ -481,6 +484,8 @@ def re_do_paper_study(request):
         conversation_history = json.load(f)
 
     conversation_history = list(conversation_history.get('conversation'))
+    if len(conversation_history) < 2:
+        return reply.fail(msg="无法找到您的上一条对话")
     # 获取最后一次的询问, 并去除最后一次的对话记录
     query = conversation_history[-2].get('content')
     conversation_history = conversation_history[:-2]

@@ -282,7 +282,7 @@ def restore_search_record(request):
 def get_user_search_history(request):
     username = request.session.get('username')
     if username is None:
-        username = 'sanyuba'
+        username = 'Ank'
     user = User.objects.filter(username=username).first()
     if user is None:
         return reply.fail(msg="请先正确登录")
