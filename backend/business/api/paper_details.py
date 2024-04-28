@@ -264,7 +264,7 @@ def like_comment(request):
                 notification = Notification(user_id=comment.user_id, title='你被赞了！')
                 paper = Paper.objects.filter(paper_id=comment.paper_id).first()
                 paper_title = paper.title
-                notification.content = '你的评论被用户' + user.username + '点赞了！'
+                notification.content = '你在论文《' + paper_title + '》的评论被用户' + user.username + '点赞了！'
                 return JsonResponse({'message': '点赞成功', 'is_success': True})
         else:
             return JsonResponse({'error': '用户或评论不存在', 'is_success': False}, status=400)
