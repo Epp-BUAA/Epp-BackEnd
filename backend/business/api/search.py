@@ -272,8 +272,6 @@ def get_user_search_history(request):
 
     return reply.success({"keywords": list(set(keywords))[:10]})
 
-<<<<<<< HEAD
-=======
 def kb_ask_ai(payload):
     ''''
     payload = json.dumps({
@@ -307,7 +305,6 @@ def kb_ask_ai(payload):
                     doc = str(doc).replace("\n", " ").replace("<span style='color:red'>", "").replace("</span>", "")
                     origin_docs.append(doc)
     return ai_reply, origin_docs
->>>>>>> 38d3cade6ff0c7fb83e7fd9f1064697ec514cece
 
 @require_http_methods(["POST"])
 def dialog_query(request):
@@ -401,8 +398,8 @@ def dialog_query(request):
         for i in range(len(papers)):
             content + '\n' + f'第{i}篇：'
             # TODO: 这里需要把papers的信息整理到content里面
-            content += f'标题为：{papers[i]['title']}\n'
-            content += f'摘要为：{papers[i]['abstract']}\n'
+            content += f'标题为：{papers[i]["title"]}\n'
+            content += f'摘要为：{papers[i]["abstract"]}\n'
         history.extend([{'role': 'assistant', 'content': content}])
     else:
 
@@ -412,7 +409,6 @@ def dialog_query(request):
 
         ###########################################################
         # 对话，保存3轮最多了，担心吃不下
-<<<<<<< HEAD
         def kb_ask_ai(payload):
             ''''
             payload = json.dumps({
@@ -448,9 +444,6 @@ def dialog_query(request):
                             origin_docs.append(doc)
             return ai_reply, origin_docs
 
-=======
-            
->>>>>>> 38d3cade6ff0c7fb83e7fd9f1064697ec514cece
         input_history = history.copy()[-5:] if len(history) > 5 else history.copy()
         print(input_history)
         payload = json.dumps({
@@ -486,7 +479,7 @@ def build_kb(request):
     files = []
     for id in paper_id_list:
         p = Paper.objects.get(paper_id=id)
-<<<<<<< HEAD
+
         pdf_url = p.original_url.replace('abs/', 'pdf/') + '.pdf'
         local_path = settings.PAPERS_URL + str(p.paper_id) + '.pdf'
         if not os.path.exists(local_path):
@@ -494,7 +487,7 @@ def build_kb(request):
         files.append(
             ('files', (p.title + '.pdf', open(local_path, 'rb'),
                        'application/vnd.openxmlformats-officedocument.presentationml.presentation')))
-=======
+
         pdf_url = p.original_url.replace('abs/','pdf/') + '.pdf'
         local_path = settings.PAPERS_URL  + str(p.paper_id)
         paper_nam = str(p.paper_id)
@@ -505,7 +498,7 @@ def build_kb(request):
         files.append(
             ('files', (p.title + '.pdf', open(local_path + '.pdf', 'rb'),
                 'application/vnd.openxmlformats-officedocument.presentationml.presentation')))
->>>>>>> 38d3cade6ff0c7fb83e7fd9f1064697ec514cece
+
     print('下载完毕')
     upload_temp_docs_url = f'http://{settings.REMOTE_MODEL_BASE_PATH}/knowledge_base/upload_temp_docs'
     try:
