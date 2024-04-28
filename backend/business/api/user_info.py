@@ -259,7 +259,7 @@ def notification_list(request):
     mode = int(request.GET.get('mode'))
     if mode == 1:
         notifications = Notification.objects.filter(user_id=user, is_read=False)
-        return reply.success(data={"count": len(notifications)}, msg="未读信息数量获取成功")
+        return reply.success(data={"total": len(notifications)}, msg="未读信息数量获取成功")
     elif mode == 2:
         notifications = Notification.objects.filter(user_id=user)
         data = {'total': len(notifications), 'notifications': []}
@@ -296,3 +296,26 @@ def read_notification(request):
             item.save()
 
     return reply.success(msg="消息已读完成")
+
+
+@require_http_methods('DELETE')
+def delete_notification(request):
+    """ 删除通知 """
+    username = request.session.get('username')
+    user = User.objects.filter(username=username).first()
+    if not user:
+        return reply.fail(msg="请先正确登录")
+
+    params: dict = json.loads(request.body)
+    notification_ids = params.get("notification_ids", None)  # 需要删除的通知ID数组
+    if not notification_ids or len(notification_ids) == 0:
+        # 清空通知列表
+        notifications_to_remove = Notification.objects.filter(user_id=user)
+    else:
+        # 删除指定通知
+        notifications_to_remove = Notification.objects.filter(
+            Q(user_id=user) & Q(notification_id__in=notification_ids))
+    print(len(notifications_to_remove))
+    notifications_to_remove.delete()
+
+    return reply.success(msg="删除成功")

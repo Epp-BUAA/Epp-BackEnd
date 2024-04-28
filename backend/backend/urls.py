@@ -75,6 +75,7 @@ urlpatterns = [
                   path("api/userInfo/delPaperReading", user_info.delete_paper_reading),
                   path("api/userInfo/notices", user_info.notification_list),
                   path("api/userInfo/readNotices", user_info.read_notification),
+                  path("api/userInfo/delNotices", user_info.delete_notification),
 
                   # 管理端
                   path("api/manage/users", manage.user_list),
