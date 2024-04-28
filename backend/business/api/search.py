@@ -89,10 +89,6 @@ def vector_query(request):
         4. 返回文献信息
     """
     # 鉴权
-    items = request.session.items()
-    for key, value in items:
-        print(f'{key}: {value}')
-
     username = request.session.get('username')
     if username is None:
         username = 'sanyuba'
@@ -137,10 +133,13 @@ def vector_query(request):
     if len(keyword_filtered_papers) > 20:
         keyword_filtered_papers = keyword_filtered_papers[:20]
 
-    keyword_filtered_papers.extend(vector_filtered_papers)  # Paper类的列表
-    filtered_papers = keyword_filtered_papers
+    s1 = set(vector_filtered_papers)
+    s2 = set(keyword_filtered_papers)
+    filtered_papers = list(s1.union(s2))
+
     start_year = min([paper.publication_date.year for paper in filtered_papers])
     end_year = max([paper.publication_date.year for paper in filtered_papers])
+
     # 发表数量最多的年份
     most_year = max(set([paper.publication_date.year for paper in filtered_papers]),
                     key=[paper.publication_date.year for paper in filtered_papers].count)
@@ -242,7 +241,7 @@ def restore_search_record(request):
 def get_user_search_history(request):
     username = request.session.get('username')
     if username is None:
-        username = 'sanyuba'
+        username = 'Ank'
     user = User.objects.filter(username=username).first()
     if user is None:
         return reply.fail(msg="请先正确登录")

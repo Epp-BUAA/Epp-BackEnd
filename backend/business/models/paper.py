@@ -68,3 +68,9 @@ class Paper(models.Model):
             'score': self.score,
             'score_count': self.score_count
         }
+
+    def __eq__(self, other):
+        return self.paper_id == other.paper_id if isinstance(other, Paper) else False
+
+    def __hash__(self):
+        return hash(self.paper_id)

@@ -31,7 +31,6 @@ def embed(texts):
         'Content-Type': 'application/json'
     }
     response = requests.request("POST", url, headers=headers, data=payload)
-    print(response)
     return response.json()['data']
 
 
@@ -78,6 +77,7 @@ def get_filtered_paper(text, k, threshold=None):
     with open(os.path.join(settings.LOCAL_VECTOR_DATABASE_PATH, settings.LOCAL_METADATA_NAME), "rb") as f:
         metadata = pickle.load(f)
     embed_texts = embed(text)
+    print(embed_texts)
     distances, indices = index.search(np.array(embed_texts).astype(np.float32), k)
     i2d_dict = {}
     for d, i in zip(distances[0], indices[0]):
