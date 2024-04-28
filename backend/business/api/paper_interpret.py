@@ -1,19 +1,16 @@
-'''
+"""
 本文件的功能是文献阅读助手，给定一篇文章进行阅读，根据问题的答案进行回答。
 API格式如下：
 api/peper_interpret/...
-'''
+"""
 import asyncio
-import json, openai
+import json
 import os
 import re
 from urllib.parse import quote
 import requests
-from django.http import JsonResponse, HttpRequest
 from django.views.decorators.http import require_http_methods
 
-import PyPDF2
-from PyPDF2 import PdfReader
 from django.conf import settings
 from business.models import UserDocument, FileReading, Paper, User
 from business.utils import reply
@@ -405,6 +402,7 @@ def re_do_paper_study(request):
     ai_reply, origin_docs, question_reply = do_file_chat(conversation_history, query, tmp_kb_id)
     add_conversation_history(conversation_history, query, ai_reply, conversation_path)
     return reply.success({"ai_reply": ai_reply, "docs": origin_docs, "prob_question": question_reply}, msg="成功")
+
 
 # @require_http_methods(["POST"])
 # def paper_interpret(request):
