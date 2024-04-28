@@ -19,7 +19,8 @@ from django.urls import path
 from django.conf import settings
 from django.conf.urls.static import static
 
-from business.api.paper_interpret import clear_conversation, re_do_paper_study, create_paper_study, restore_paper_study, do_paper_study, get_paper_url
+from business.api.paper_interpret import clear_conversation, re_do_paper_study, create_paper_study, restore_paper_study, \
+    do_paper_study, get_paper_url
 from business.api.vector_database import insert_vector_database
 from business.api.auth import login, signup, testLogin, logout, manager_login, manager_logout
 from business.api.paper_details import like_paper, score_paper, collect_paper, report_comment, comment_paper, \
@@ -27,7 +28,7 @@ from business.api.paper_details import like_paper, score_paper, collect_paper, r
     get_user_paper_info
 from business.api.upload_document import upload_paper, remove_uploaded_paper, document_list
 from business.api import user_info, manage
-from business.api.search import get_user_search_history, vector_query, dialog_query, flush, restore_search_record,\
+from business.api.search import get_user_search_history, vector_query, dialog_query, flush, restore_search_record, \
     build_kb
 from business.utils.paper_vdb_init import local_vdb_init, easy_vector_query
 from business.api.summary import generate_summary, create_abstract_report
@@ -72,6 +73,9 @@ urlpatterns = [
                   path("api/userInfo/delSummaryReports", user_info.delete_summary_reports),
                   path("api/userInfo/paperReading", user_info.paper_reading_list),
                   path("api/userInfo/delPaperReading", user_info.delete_paper_reading),
+                  path("api/userInfo/notices", user_info.notification_list),
+                  path("api/userInfo/readNotices", user_info.read_notification),
+                  path("api/userInfo/delNotices", user_info.delete_notification),
 
                   # 管理端
                   path("api/manage/users", manage.user_list),
@@ -99,8 +103,8 @@ urlpatterns = [
                   path("api/study/generateAbstractReport", create_abstract_report),
                   # 本地向量库初始化
                   path("api/init/localVDBInit", local_vdb_init),
-                  
+
                   # 综述摘要生成
-                   path("api/summary/generateSummaryReport", generate_summary),
-                   path("api/summary/generateAbstractReport", create_abstract_report),
+                  path("api/summary/generateSummaryReport", generate_summary),
+                  path("api/summary/generateAbstractReport", create_abstract_report),
               ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
