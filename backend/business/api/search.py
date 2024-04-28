@@ -218,32 +218,7 @@ def vector_query(request):
     for p in filtered_papers:
         filtered_papers_list.append(p.to_dict())
         
-        
-    ### 把这些paper加入到向量库，形成一个新的临时知识库
-    
-    ## 先把文章全部下载下来
-    files = []
-    for p in filtered_papers_list:
-        pdf_url = p['original_url'].replace('abs/','pdf/') + '.pdf'
-        local_path = settings.PAPERS_URL  + str(p['paper_id']) + '.pdf'
-        if not os.path.exists(local_path):
-            downloadPaper(pdf_url, local_path)
-        files.append(
-            ('files', (p['title'] + '.pdf', open(local_path, 'rb'),
-                'application/vnd.openxmlformats-officedocument.presentationml.presentation')))
-    
-    upload_temp_docs_url = f'http://{settings.REMOTE_MODEL_BASE_PATH}/knowledge_base/upload_temp_docs'
-    response = requests.post(upload_temp_docs_url, files=files)
-
-    # 关闭文件，防止内存泄露
-    for k, v in files:
-        v[1].close()
-    if response.status_code != 200:
-        return reply.fail(msg="连接模型服务器失败")
-    tmp_kb_id = response.json()['data']['id']
-        
-
-    return JsonResponse({"paper_infos": filtered_papers_list, 'ai_reply': ai_reply, 'keywords': keywords, 'kb_id' : tmp_kb_id}, status=200)
+    return JsonResponse({"paper_infos": filtered_papers_list, 'ai_reply': ai_reply, 'keywords': keywords}, status=200)
 
 @require_http_methods(["GET"])
 def restore_search_record(request):
@@ -433,7 +408,7 @@ def dialog_query(request):
 
 
 @require_http_methods(["POST"])
-def rebuild_kb(request):
+def build_kb(request):
     ''''
     这个方法是论文循证
     输入为paper_id_list，重新构建一个知识库
