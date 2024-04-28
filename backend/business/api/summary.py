@@ -12,7 +12,6 @@ from django.conf import settings
 from business.models import User, UserDocument, Paper, abstract_report
 from django.views.decorators.http import require_http_methods
 import os
-from business.utils.md_pdf import md2pdf
 
 
 ##################################新建一个临时知识库，多问几次，然后通过一个模板生成综述#######################################
@@ -105,12 +104,9 @@ def generate_summary(request):
         prompt = '这是一篇综述，请让他更加通顺：\n' + summary
         response = queryGLM(prompt, [])
         md_path = settings.USER_REPORTS_PATH + '/' + str(report.report_id) + '.md'
-        pdf_path = settings.USER_REPORTS_PATH + '/' + str(report.report_id) + '.pdf'
         with open(md_path, 'w', encoding='utf-8') as f:
             f.write(response)
-        
-        md2pdf(md_path, pdf_path)
-        report.report_path = pdf_path
+        report.report_path = md_path
         report.save()
         # os.remove(md_path)
         print(response)
@@ -308,11 +304,9 @@ def create_abstract_report(request):
     prompt = '这是一篇摘要，请让他更加通顺，结果使用简体中文：\n' + summary
     response = queryGLM(prompt, [])
     print(response)
-    pdf_path = os.path.join(settings.USER_REPORTS_PATH, str(title) + '.pdf')
     with open(report_path, 'w', encoding='utf-8') as f:
         f.write(response)
-    md2pdf(report_path, pdf_path)
-    ar.report_path = pdf_path
+    ar.report_path = report_path
     ar.save()
     return success({'summary': response}, msg="生成摘要成功")
     

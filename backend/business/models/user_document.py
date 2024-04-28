@@ -17,7 +17,6 @@ class UserDocument(models.Model):
         - upload_date       上传时间
         - format            文件格式
         - size              文件大小
-        - summary           文件摘要
     """
     document_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False, unique=True)
     user_id = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -26,7 +25,6 @@ class UserDocument(models.Model):
     upload_date = models.DateTimeField(auto_now_add=True)
     format = models.CharField(max_length=50)
     size = models.IntegerField()  # 文件大小以字节为单位
-    summary = models.TextField(null=True)
 
     def __str__(self):
         return self.title
