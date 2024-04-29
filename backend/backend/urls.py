@@ -80,6 +80,9 @@ urlpatterns = [
                   # 管理端
                   path("api/manage/users", manage.user_list),
                   path("api/manage/papers", manage.paper_list),
+                  path("api/manage/commentReport", manage.comment_report_list),
+                  path("api/manage/judgeCmtRpt", manage.judge_comment_report),
+                  path("api/manage/delComment", manage.delete_comment),
 
                   # 信息检索模块
                   path("api/search/easyVectorQuery", easy_vector_query),

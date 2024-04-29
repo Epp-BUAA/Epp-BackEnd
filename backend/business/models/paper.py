@@ -47,6 +47,12 @@ class Paper(models.Model):
     def __str__(self):
         return self.title
 
+    def simply_desc(self):
+        return {
+            'paper_id': str(self.paper_id),
+            'title': str(self.title),
+        }
+
     def get_paper_id(self):
         return str(self.paper_id)
 

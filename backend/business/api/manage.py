@@ -110,23 +110,48 @@ def paper_list(request):
 @require_http_methods('GET')
 def comment_report_list(request):
     """ 举报列表 """
-    # 鉴权先不加了吧...
-    # manager_name = request.session.get('managerName')
-    # manager = Admin.objects.filter(admin_name=manager_name).first()
-    # if not manager:
-    #     return reply.fail(msg="请完成管理员身份验证")
+    mode = int(request.GET.get('mode'))
+    if mode == 1:
+        # 获取未处理的举报信息
+        reports = CommentReport.objects.filter(judgment__isnull=True).order_by('-date')
+    elif mode == 2:
+        # 获取已处理的举报信息
+        reports = CommentReport.objects.filter(judgment__isnull=False).order_by('-date')
+    else:
+        return reply.fail(msg="mode参数有误")
 
-    pass
+    data = {"total": len(reports), "reports": []}
+    for report in reports:
+        obj = {
+            'comment': {
+                "comment_id": report.comment_id_1.comment_id if report.comment_id_1 else report.comment_id_2.comment_id,
+                "user": report.comment_id_1.user_id.simply_desc() if report.comment_id_1 else report.comment_id_2.user_id.simply_desc(),
+                "paper": report.comment_id_1.paper_id.simply_desc() if report.comment_id_1 else report.comment_id_2.paper_id.simply_desc(),
+                "date": report.comment_id_1.date.strftime(
+                    "%Y-%m-%d %H:%M:%S") if report.comment_id_1 else report.comment_id_2.date.strftime(
+                    "%Y-%m-%d %H:%M:%S"),
+                "content": report.comment_id_1.text if report.comment_id_1 else report.comment_id_2.text
+            },
+            'user': report.user_id.simply_desc(),
+            'comment_level': report.comment_level,
+            'date': report.date.strftime("%Y-%m-%d %H:%M:%S"),
+            'content': report.content
+        }
+        if report.judgment:
+            obj['judgement'] = report.judgment
+        data['reports'].append(obj)
+
+    return reply.success(data=data, msg="举报信息获取成功")
 
 
 @require_http_methods('POST')
-def reply_comment_report(request):
-    """ 回复举报 """
+def judge_comment_report(request):
+    """ 举报审核意见 """
     # todo 管理员鉴权
 
     pass
 
+
 @require_http_methods('DELETE')
 def delete_comment(request):
     """ 删除评论 """
-

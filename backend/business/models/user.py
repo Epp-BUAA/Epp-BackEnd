@@ -33,3 +33,9 @@ class User(models.Model):
 
     def __str__(self):
         return self.username
+
+    def simply_desc(self):
+        return {
+            "user_id": str(self.user_id),
+            "user_name": str(self.username)
+        }
