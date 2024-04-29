@@ -6,8 +6,8 @@
 from django.views.decorators.http import require_http_methods
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 from django.core.cache import cache
-
-from business.models import User, Paper, Admin, CommentReport
+import json
+from business.models import User, Paper, Admin, CommentReport, Notification, FirstLevelComment, SecondLevelComment
 from business.utils import reply
 
 
@@ -19,7 +19,6 @@ def user_list(request):
     # manager = Admin.objects.filter(admin_name=manager_name).first()
     # if not manager:
     #    return reply.fail(msg="请完成管理员身份验证")
-
     keyword = request.GET.get('keyword', default=None)  # 搜索关键字
     page_num = request.GET.get('page_num', default=1)  # 页码
     page_size = request.GET.get('page_size', default=15)  # 每页条目数
@@ -123,6 +122,7 @@ def comment_report_list(request):
     data = {"total": len(reports), "reports": []}
     for report in reports:
         obj = {
+            'id': report.id,
             'comment': {
                 "comment_id": report.comment_id_1.comment_id if report.comment_id_1 else report.comment_id_2.comment_id,
                 "user": report.comment_id_1.user_id.simply_desc() if report.comment_id_1 else report.comment_id_2.user_id.simply_desc(),
@@ -148,10 +148,35 @@ def comment_report_list(request):
 def judge_comment_report(request):
     """ 举报审核意见 """
     # todo 管理员鉴权
+    params: dict = json.loads(request.body)
+    report_id = params.get('id')
+    judgment = params.get('judgment')
+    # 讲审核意见填入举报表，同时发送信息给举报用户
+    report = CommentReport.objects.filter(id=report_id).first()
+    report.judgment = judgment
+    report.save()
+    Notification(user_id=report.user_id, title="您的举报已被审核", content=judgment).save()
 
-    pass
+    return reply.success(msg="举报已审核")
 
 
 @require_http_methods('DELETE')
 def delete_comment(request):
     """ 删除评论 """
+    params: dict = json.loads(request.body)
+    report_id = params.get('id')
+    report = CommentReport.objects.filter(id=report_id).first()
+    # 删除评论并通知用户
+    level = report.comment_level
+    if level == 1:
+        Notification(user_id=report.comment_id_1.user_id, title="您的评论被举报了！",
+                     content=f"您在 {report.comment_id_1.date.strftime('%Y-%m-%d %H:%M:%S')} 对论文《{report.comment_id_1.paper_id.title}》的评论内容 \"{report.comment_id_1.text}\" 被其他用户举报，根据EPP平台管理规定，检测到您的评论确为不合规，该评论现已删除。\n请注意遵守平台评论规范，理性发言！"
+                     ).save()
+        report.comment_id_1.delete()
+    elif level == 2:
+        Notification(user_id=report.comment_id_2.user_id, title="您的评论被举报了！",
+                     content=f"您在 {report.comment_id_2.date.strftime('%Y-%m-%d %H:%M:%S')} 对论文《{report.comment_id_2.paper_id.title}》的评论内容 \"{report.comment_id_2.text}\" 被其他用户举报，根据EPP平台管理规定，检测到您的评论确为不合规，该评论现已删除。\n请注意遵守平台评论规范，理性发言！"
+                     ).save()
+        report.comment_id_2.delete()
+
+    return reply.success(msg="评论已删除")
