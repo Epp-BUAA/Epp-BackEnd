@@ -128,10 +128,10 @@ def report_comment(request):
             comment = SecondLevelComment.objects.filter(comment_id=comment_id).first()
         if user and comment:
             if comment_level == 1:
-                report_com = CommentReport(comment_id_1=comment, user_id=user, content=report)
+                report_com = CommentReport(comment_id_1=comment, comment_level=1, user_id=user, content=report)
                 report_com.save()
             elif comment_level == 2:
-                report_com = CommentReport(comment_id_2=comment, user_id=user, content=report)
+                report_com = CommentReport(comment_id_2=comment, comment_level=2, user_id=user, content=report)
                 report_com.save()
             return JsonResponse({'message': '举报成功', 'is_success': True})
         else:
