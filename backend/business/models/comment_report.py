@@ -23,5 +23,5 @@ class CommentReport(models.Model):
     comment_level = models.IntegerField(default=1)  # 1代表一级评论，2代表二级评论
     user_id = models.ForeignKey(User, on_delete=models.CASCADE)
     date = models.DateTimeField(auto_now_add=True)
-    content = models.CharField(max_length=255)
-    judgment = models.CharField(max_length=255, null=True, blank=True)
+    content = models.TextField(null=True, blank=True)
+    judgment = models.TextField(null=True, blank=True)

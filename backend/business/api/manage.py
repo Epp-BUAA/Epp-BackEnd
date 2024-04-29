@@ -7,7 +7,7 @@ from django.views.decorators.http import require_http_methods
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 from django.core.cache import cache
 
-from business.models import User, Paper, Admin
+from business.models import User, Paper, Admin, CommentReport
 from business.utils import reply
 
 
@@ -120,6 +120,13 @@ def comment_report_list(request):
 
 
 @require_http_methods('POST')
-def judge_comment(request):
-    """ 处理举报信息和评论 """
+def reply_comment_report(request):
+    """ 回复举报 """
+    # todo 管理员鉴权
+
     pass
+
+@require_http_methods('DELETE')
+def delete_comment(request):
+    """ 删除评论 """
+
