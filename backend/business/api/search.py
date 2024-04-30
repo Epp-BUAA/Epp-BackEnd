@@ -228,7 +228,7 @@ def vector_query(request):
     for p in filtered_papers:
         filtered_papers_list.append(p.to_dict())
 
-    return JsonResponse({"paper_infos": filtered_papers_list, 'ai_reply': ai_reply, 'keywords': keywords}, status=200)
+    return JsonResponse({"paper_infos": filtered_papers_list, 'ai_reply': ai_reply, 'keywords': keywords, 'search_record_id' : search_record.search_record_id}, status=200)
 
 
 @require_http_methods(["GET"])
@@ -358,20 +358,12 @@ def dialog_query(request):
         username = 'sanyuba'
     data = json.loads(request.body)
     message = data.get('message')
-    keyword = data.get('keyword')
+    search_record_id = data.get('search_record_id')
     kb_id = data.get('kb_id')
     user = User.objects.filter(username=username).first()
     if user is None:
         return JsonResponse({'error': '用户不存在'}, status=404)
-    search_record = SearchRecord.objects.filter(user_id=user.user_id, keyword=keyword).first()
-    if search_record is None:
-        # 创建新的聊天记录
-        search_record = SearchRecord.objects.create(user_id=user.user_id, keyword=keyword)
-        search_record.conversation_path = settings.USER_SEARCH_CONSERVATION_PATH + '/' + str(
-            search_record.search_record_id) + '.json'
-        search_record.date = datetime.datetime.now()
-        search_record.save()
-    # 历史记录的json文件名称和search_record_id一致
+    search_record = SearchRecord.objects.filter(search_record_id=search_record_id).first()
     conversation_path = settings.USER_SEARCH_CONSERVATION_PATH + '/' + str(search_record.search_record_id) + '.json'
     history = []
     if os.path.exists(conversation_path):
@@ -407,42 +399,8 @@ def dialog_query(request):
 
         ###########################################################
         # 对话，保存3轮最多了，担心吃不下
-        def kb_ask_ai(payload):
-            ''''
-            payload = json.dumps({
-                "query": query,
-                "knowledge_id": tmp_kb_id,
-                "history": conversation_history[-10:],
-                "prompt_name": "text"  # 使用历史记录对话模式
-            })
-            payload = json.dumps({
-                "query": query,
-                "knowledge_id": tmp_kb_id,
-                "prompt_name": "default"  # 使用普通对话模式
-            })
-            '''
-            file_chat_url = f'http://{settings.REMOTE_MODEL_BASE_PATH}/chat/file_chat'
-            headers = {
-                'Content-Type': 'application/json'
-            }
-            response = requests.request("POST", file_chat_url, data=payload, headers=headers, stream=False)
-            ai_reply = ""
-            origin_docs = []
-            print(response)
-            for line in response.iter_lines():
-                if line:
-                    decoded_line = line.decode('utf-8')
-                    if decoded_line.startswith('data'):
-                        data = decoded_line.replace('data: ', '')
-                        data = json.loads(data)
-                        ai_reply += data["answer"]
-                        for doc in data["docs"]:
-                            doc = str(doc).replace("\n", " ").replace("<span style='color:red'>", "").replace("</span>",
-                                                                                                              "")
-                            origin_docs.append(doc)
-            return ai_reply, origin_docs
 
-        input_history = history.copy()[-5:] if len(history) > 5 else history.copy()
+        input_history = history['conversation'].copy()[-5:] if len(history['conversation']) > 5 else history['conversation'].copy()
         print(input_history)
         print('kb_id:', kb_id)
         print('message:', message)
@@ -457,8 +415,8 @@ def dialog_query(request):
         dialog_type = 'dialog'
         papers = []
         content = queryGLM('你叫epp论文助手，以你的视角重新转述这段话：'+ai_reply, [])
-        history.extend([{'role': 'user', 'content': message}])
-        history.extend([{'role': 'assistant', 'content': content}])
+        history['conversation'].extend([{'role': 'user', 'content': message}])
+        history['conversation'].extend([{'role': 'assistant', 'content': content}])
     with open(conversation_path, 'w', encoding='utf-8') as f:
         f.write(json.dumps(history))
     res = {
@@ -483,8 +441,7 @@ def build_kb(request):
 
         pdf_url = p.original_url.replace('abs/', 'pdf/') + '.pdf'
         local_path = settings.PAPERS_URL + str(p.paper_id) + '.pdf'
-        if not os.path.exists(local_path):
-            downloadPaper(pdf_url, local_path)
+        downloadPaper(pdf_url, str(p.paper_id))
         files.append(
             ('files', (p.title + '.pdf', open(local_path, 'rb'),
                        'application/vnd.openxmlformats-officedocument.presentationml.presentation')))
@@ -494,8 +451,7 @@ def build_kb(request):
         paper_nam = str(p.paper_id)
         print(local_path)
         print(pdf_url)
-        if not os.path.exists(local_path + '.pdf'):
-            downloadPaper(pdf_url, paper_nam)
+        downloadPaper(pdf_url, paper_nam)
         files.append(
             ('files', (p.title + '.pdf', open(local_path + '.pdf', 'rb'),
                 'application/vnd.openxmlformats-officedocument.presentationml.presentation')))
@@ -536,3 +492,60 @@ def flush(request):
         if os.path.exists(conversation_path):
             os.remove(conversation_path)
         HttpRequest('清空成功', status=200)
+        
+@require_http_methods(["POST"])
+def get_search_record(request):
+    '''
+    本函数用于获取搜索记录
+    '''
+    username = request.session.get('username')
+    data = json.loads(request.body)
+    search_record_id = data.get('search_record_id')
+    search_record = SearchRecord.objects.filter(search_record_id=search_record_id).first()
+    if search_record is None:
+        return JsonResponse({'error': '搜索记录不存在'}, status=404)
+    else:
+        conversation_path = search_record.conversation_path
+        if os.path.exists(conversation_path):
+            with open(conversation_path, 'r') as f:
+                history = json.load(f)
+            paper_id_list = []
+            for paper in search_record.related_papers.all():
+                paper_id_list.append(paper.paper_id)
+            files = []
+            for id in paper_id_list:
+                p = Paper.objects.get(paper_id=id)
+
+                pdf_url = p.original_url.replace('abs/', 'pdf/') + '.pdf'
+                local_path = settings.PAPERS_URL + str(p.paper_id) + '.pdf'
+                downloadPaper(pdf_url, str(p.paper_id))
+                files.append(
+                    ('files', (p.title + '.pdf', open(local_path, 'rb'),
+                            'application/vnd.openxmlformats-officedocument.presentationml.presentation')))
+
+                pdf_url = p.original_url.replace('abs/','pdf/') + '.pdf'
+                local_path = settings.PAPERS_URL  + str(p.paper_id)
+                paper_nam = str(p.paper_id)
+                print(local_path)
+                print(pdf_url)
+                downloadPaper(pdf_url, paper_nam)
+                files.append(
+                    ('files', (p.title + '.pdf', open(local_path + '.pdf', 'rb'),
+                        'application/vnd.openxmlformats-officedocument.presentationml.presentation')))
+
+            print('下载完毕')
+            upload_temp_docs_url = f'http://{settings.REMOTE_MODEL_BASE_PATH}/knowledge_base/upload_temp_docs'
+            try:
+                response = requests.post(upload_temp_docs_url, files=files)
+            except Exception as e:
+                return reply.fail(msg="连接模型服务器失败")
+            # 关闭文件，防止内存泄露
+            for k, v in files:
+                v[1].close()
+            if response.status_code != 200:
+                return reply.fail(msg="连接模型服务器失败")
+            tmp_kb_id = response.json()['data']['id']
+            
+            return JsonResponse({'coversation' : history['conversation'], 'kb_id' : tmp_kb_id}, status=200)
+        else:
+            return JsonResponse({'error': '搜索记录不存在'}, status=404)
