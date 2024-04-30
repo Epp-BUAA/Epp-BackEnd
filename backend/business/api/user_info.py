@@ -168,6 +168,7 @@ def summary_report_list(request):
             "path": report.report_path,
             "date": report.date.strftime("%Y-%m-%d %H:%M:%S")
         })
+    print(data)
     return reply.success(data=data, msg='综述报告列表获取成功')
 
 

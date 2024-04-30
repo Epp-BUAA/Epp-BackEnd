@@ -475,22 +475,22 @@ def build_kb(request):
 def flush(request):
     '''
     这是用来清空对话记录的函数
-    :param request: 请求，类型为GET
+    :param request: 请求，类型为DEL
         内容包含：{
-            keyword: string
+            search_record_id : string
         }
     '''
     username = request.session.get('username')
     data = json.loads(request.body)
-    keyword = data.get('keyword')
-    search_record = SearchRecord.objects.filter(user_id=username, keyword=keyword).first()
-    if search_record is None:
+    sr = SearchRecord.objects.get(search_record_id=data.get('search_record_id'))
+    if sr is None:
         return JsonResponse({'error': '搜索记录不存在'}, status=404)
     else:
-        conversation_path = search_record.conversation_path
+        conversation_path = sr.conversation_path
         import os
         if os.path.exists(conversation_path):
             os.remove(conversation_path)
+        sr.delete()
         HttpRequest('清空成功', status=200)
         
 @require_http_methods(["POST"])
