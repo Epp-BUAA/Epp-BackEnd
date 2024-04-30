@@ -99,3 +99,20 @@ def document_list(request):
             "date": document.upload_date.strftime("%Y-%m-%d %H:%M:%S")
         })
     return reply.success(data=data, msg='文件列表获取成功')
+
+
+def get_document_url(request):
+    """
+    获取用户上传文件url
+    """
+    if request.method == 'GET':
+        document_id = request.GET.get('document_id')
+        document = UserDocument.objects.filter(document_id=document_id).first()
+        if document:
+            return JsonResponse(
+                {'message': '获取成功', 'local_url': '/' + document.local_path,
+                 'is_success': True})
+        else:
+            return JsonResponse({'error': '文件不存在', 'is_success': False}, status=400)
+    else:
+        return JsonResponse({'error': '请求方法错误', 'is_success': False}, status=400)
