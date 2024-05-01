@@ -168,6 +168,7 @@ def summary_report_list(request):
             "path": report.report_path,
             "date": report.date.strftime("%Y-%m-%d %H:%M:%S")
         })
+    print(data)
     return reply.success(data=data, msg='综述报告列表获取成功')
 
 
@@ -320,3 +321,15 @@ def delete_notification(request):
     notifications_to_remove.delete()
 
     return reply.success(msg="删除成功")
+
+@require_http_methods('GET')
+def get_summary_report(request):
+    """ 获取综述报告 """
+    report_id = request.GET.get('report_id')
+    report = SummaryReport.objects.filter(report_id=report_id).first()
+    if report:
+        with open(report.report_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        return reply.success(data={'summary': content}, msg='综述报告获取成功')
+    else:
+        return reply.fail(msg='综述报告不存在')
