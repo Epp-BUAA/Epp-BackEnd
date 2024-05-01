@@ -241,7 +241,7 @@ def delete_paper_reading(request):
     print(len(reading_list))
     for reading in reading_list:
         # 删除研读历史
-        path = os.path.join(BASE_DIR, reading.conservation_path)
+        path = os.path.join(BASE_DIR, reading.conversation_path)
         if os.path.exists(path):
             os.remove(path)
         reading.delete()
