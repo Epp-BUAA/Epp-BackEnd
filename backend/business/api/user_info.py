@@ -235,7 +235,7 @@ def delete_paper_reading(request):
         reading_list = FileReading.objects.filter(Q(user_id=user) & Q(paper_id__isnull=False))
     else:
         # 删除指定研读历史
-        reading_list = SummaryReport.objects.filter(Q(user_id=user) & Q(paper_id__in=paper_ids))
+        reading_list = FileReading.objects.filter(Q(user_id=user) & Q(paper_id__in=paper_ids))
 
     print(len(reading_list))
     for reading in reading_list:
@@ -256,6 +256,7 @@ def notification_list(request):
     if not user:
         return reply.fail(msg="请先正确登录")
 
+    print(request.GET)
     mode = int(request.GET.get('mode'))
     if mode == 1:
         notifications = Notification.objects.filter(user_id=user, is_read=False)
