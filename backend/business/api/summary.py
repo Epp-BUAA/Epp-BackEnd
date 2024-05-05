@@ -50,7 +50,7 @@ def generate_summary(request):
         report = SummaryReport.objects.create(user_id=user)
         report.title = '综述'+str(report.report_id)
         p = settings.USER_REPORTS_PATH + '/' + str(report.report_id) + '.md'
-        report.local_path = p
+        report.report_path = p
         report.save()
         # download_dir = settings.CACHE_PATH + '/' + str(report.report_id)
         # os.makedirs(download_dir)
