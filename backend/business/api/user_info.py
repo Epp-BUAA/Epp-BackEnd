@@ -327,8 +327,13 @@ def delete_notification(request):
 @require_http_methods('GET')
 def get_summary_report(request):
     """ 获取综述报告 """
+    username = request.session.get('username')
+    user = User.objects.filter(username=username).first()
+    if not user:
+        return reply.fail(msg="请先正确登录")
+
     report_id = request.GET.get('report_id')
-    report = SummaryReport.objects.filter(report_id=report_id).first()
+    report = SummaryReport.objects.filter(report_id=report_id, user_id=user).first()
     if report:
         with open(report.report_path, 'r', encoding='utf-8') as f:
             content = f.read()
