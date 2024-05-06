@@ -15,7 +15,7 @@ class FileReading(models.Model):
         - document_id           用户文件ID
         - paper_id              论文ID
         - title                 研读标题
-        - conservation_path     对话记录文件地址
+        - conversation_path     对话记录文件地址
         - date                  最近研读时间
     """
     user_id = models.ForeignKey(User, on_delete=models.CASCADE)

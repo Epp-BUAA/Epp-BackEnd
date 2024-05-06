@@ -211,6 +211,7 @@ def paper_reading_list(request):
     data = {'total': len(reading_list), 'paper_reading_list': []}
     for reading in reading_list:
         data['paper_reading_list'].append({
+            "file_reading_id": reading.id,
             "paper_id": reading.paper_id.paper_id,  # 研读论文ID
             "paper_title": reading.paper_id.title,  # 研读论文标题
             "paper_score": reading.paper_id.score,  # 研读论文评分
@@ -321,6 +322,7 @@ def delete_notification(request):
     notifications_to_remove.delete()
 
     return reply.success(msg="删除成功")
+
 
 @require_http_methods('GET')
 def get_summary_report(request):
