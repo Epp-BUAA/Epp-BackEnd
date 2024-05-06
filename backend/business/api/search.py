@@ -46,7 +46,7 @@ def build_kb_by_paper_ids(paper_id_list : list[str]):
     for k, v in files:
         v[1].close()
     if response.status_code != 200:
-        return reply.fail(msg="连接模型服务器失败")
+        raise Exception("连接模型服务器失败")
     tmp_kb_id = response.json()['data']['id']
     return tmp_kb_id
 
@@ -472,6 +472,7 @@ def build_kb(request):
     '''
     data = json.loads(request.body)
     paper_id_list = data.get('paper_id_list')
+    paper_id_list = paper_id_list[:5] if len(paper_id_list) > 5 else paper_id_list
     files = []
     for id in paper_id_list:
         p = Paper.objects.get(paper_id=id)
