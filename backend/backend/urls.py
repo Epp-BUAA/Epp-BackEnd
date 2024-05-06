@@ -21,7 +21,6 @@ from django.conf.urls.static import static
 
 from business.api.paper_interpret import clear_conversation, re_do_paper_study, create_paper_study, restore_paper_study, \
     do_paper_study, get_paper_url
-from business.api.vector_database import insert_vector_database
 from business.api.auth import login, signup, testLogin, logout, manager_login, manager_logout
 from business.api.paper_details import like_paper, score_paper, collect_paper, report_comment, comment_paper, \
     batch_download_papers, get_paper_info, get_first_comment, get_second_comment, like_comment, \
@@ -98,7 +97,7 @@ urlpatterns = [
                   path('api/search/changeRecordPapers', change_record_papers),
 
                   # 向量化模块
-                  path("insert_vector_database", insert_vector_database),
+                  # path("insert_vector_database", insert_vector_database),
 
                   # 文献研读模块
                   path("api/study/createPaperStudy", create_paper_study),
@@ -108,6 +107,7 @@ urlpatterns = [
                   path("api/study/reDoPaperStudy", re_do_paper_study),
                   path("api/study/clearConversation", clear_conversation),
                   path("api/study/generateAbstractReport", create_abstract_report),
+
                   # 本地向量库初始化
                   path("api/init/localVDBInit", local_vdb_init),
 

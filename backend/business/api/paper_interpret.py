@@ -38,11 +38,31 @@ def create_content_disposition(filename):
     disposition = f'form-data; name="file"; filename="{filename}"; filename*=UTF-8\'\'{safe_filename}'
     return disposition
 
+# 删除Tmp_kb的缓存，用于某tmp_kb_id再也不被使用时，避免内存爆炸
+def delete_tmp_kb(tmp_kb_id):
+    delete_tmp_kb_url =f'http://{settings.REMOTE_MODEL_BASE_PATH}/knowledge_base/delete_temp_docs'
+    # headers = {
+    #     'Content-Type': 'application/x-www-form-urlencoded'
+    # }
+    payload = {
+        "knowledge_id": tmp_kb_id
+    }
+    response = requests.post(delete_tmp_kb_url, data=payload)  # data默认是form形式
+    if response.status_code == 200:
+        return True
+    else:
+        return False
 
 # 建立file_reading和tmp_kb的映射
 def insert_file_2_kb(file_reading_id, tmp_kb_id):
     with open(settings.USER_READ_MAP_PATH, "r") as f:
         f_2_kb_map = json.load(f)
+    if file_reading_id in f_2_kb_map:
+        if delete_tmp_kb(f_2_kb_map[file_reading_id]):
+            print("删除TmpKb成功")
+        else:
+            print("删除TmpKb失败")
+
     f_2_kb_map[file_reading_id] = tmp_kb_id
     with open(settings.USER_READ_MAP_PATH, "w") as f:
         json.dump(f_2_kb_map, f, indent=4)
@@ -128,7 +148,7 @@ def create_paper_study(request):
 
     if response.status_code == 200:
         tmp_kb_id = response.json()['data']['id']
-        insert_file_2_kb(file_reading.id, tmp_kb_id)
+        insert_file_2_kb(str(file_reading.id), tmp_kb_id)
         return reply.success({'file_reading_id': file_reading.id}, msg="开启文献研读对话成功")
     else:
         return reply.fail(msg="连接模型服务器失败")
@@ -187,7 +207,7 @@ def restore_paper_study(request):
     # 返回结果, 需要将历史对话一起返回
     if response.status_code == 200:
         tmp_kb_id = response.json()['data']['id']
-        insert_file_2_kb(file_reading_id, tmp_kb_id)
+        insert_file_2_kb(str(file_reading_id), tmp_kb_id)
         # 若删除过历史对话, 则再创建一个文件
         if not os.path.exists(fr.conversation_path):
             with open(fr.conversation_path, 'w') as f:
@@ -268,7 +288,7 @@ def do_file_chat(conversation_history, query, tmp_kb_id):
         payload = json.dumps({
             "query": query,
             "knowledge_id": tmp_kb_id,
-            "history": conversation_history[-10:],
+            "history": conversation_history[-10:],  # 传10条历史记录
             "prompt_name": "text"  # 使用历史记录对话模式
         })
 
