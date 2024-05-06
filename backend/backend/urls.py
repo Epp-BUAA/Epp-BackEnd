@@ -29,7 +29,7 @@ from business.api.paper_details import like_paper, score_paper, collect_paper, r
 from business.api.upload_document import upload_paper, remove_uploaded_paper, document_list, get_document_url
 from business.api import user_info, manage
 from business.api.search import get_user_search_history, vector_query, dialog_query, flush, restore_search_record, \
-    build_kb, get_search_record
+    build_kb, get_search_record, change_record_papers
 from business.utils.paper_vdb_init import local_vdb_init, easy_vector_query
 from business.api.summary import generate_summary, create_abstract_report
 
@@ -94,7 +94,8 @@ urlpatterns = [
                   path("api/search/restoreSearchRecord", restore_search_record),
                   path("api/study/getUserSearchHistory", get_user_search_history),
                   path('api/search/rebuildKB', build_kb),
-                  path('api/search/getSearchRecord', get_search_record),
+                  # path('api/search/getSearchRecord', get_search_record),
+                  path('api/search/changeRecordPapers', change_record_papers),
 
                   # 向量化模块
                   path("insert_vector_database", insert_vector_database),

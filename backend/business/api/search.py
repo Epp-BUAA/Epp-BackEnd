@@ -18,6 +18,43 @@ from business.utils import reply
 from business.utils.paper_vdb_init import get_filtered_paper
 from business.utils.download_paper import downloadPaper
 
+def build_kb_by_paper_ids(paper_id_list : list[str]):
+    ''''
+    输入为paper_id_list，重新构建一个知识库
+    '''
+    files = []
+    for id in paper_id_list:
+        p = Paper.objects.get(paper_id=id)
+
+        pdf_url = p.original_url.replace('abs/', 'pdf/') + '.pdf'
+        local_path = settings.PAPERS_URL + str(p.paper_id) + '.pdf'
+        downloadPaper(pdf_url, str(p.paper_id))
+        files.append(
+            ('files', (p.title + '.pdf', open(local_path, 'rb'),
+                       'application/vnd.openxmlformats-officedocument.presentationml.presentation')))
+        pdf_url = p.original_url.replace('abs/','pdf/') + '.pdf'
+        local_path = settings.PAPERS_URL  + str(p.paper_id)
+        paper_nam = str(p.paper_id)
+        print(local_path)
+        print(pdf_url)
+        downloadPaper(pdf_url, paper_nam)
+        files.append(
+            ('files', (p.title + '.pdf', open(local_path + '.pdf', 'rb'),
+                'application/vnd.openxmlformats-officedocument.presentationml.presentation')))
+    print('下载完毕')
+    upload_temp_docs_url = f'http://{settings.REMOTE_MODEL_BASE_PATH}/knowledge_base/upload_temp_docs'
+    try:
+        response = requests.post(upload_temp_docs_url, files=files)
+    except Exception as e:
+        raise e
+    # 关闭文件，防止内存泄露
+    for k, v in files:
+        v[1].close()
+    if response.status_code != 200:
+        return reply.fail(msg="连接模型服务器失败")
+    tmp_kb_id = response.json()['data']['id']
+    return tmp_kb_id
+
 
 def queryGLM(msg: str, history=None) -> str:
     '''
@@ -253,6 +290,11 @@ def restore_search_record(request):
     for paper in papers:
         paper_infos.append(paper.to_dict())
     history['paper_infos'] = paper_infos
+    try:
+        kb_id  = build_kb_by_paper_ids([paper.paper_id for paper in papers])
+        history['kb_id'] = kb_id
+    except Exception as e:
+        return reply.fail(msg="构建知识库失败")
 
     return reply.success(history)
 
@@ -470,6 +512,30 @@ def build_kb(request):
     tmp_kb_id = response.json()['data']['id']
     return reply.success({'kb_id': tmp_kb_id})
 
+def change_record_papers(request):
+    '''
+    本函数用于修改搜索记录的论文
+    '''
+    username = request.session.get('username')
+    data = json.loads(request.body)
+    search_record_id = data.get('search_record_id')
+    paper_id_list = data.get('paper_id_list')
+    search_record = SearchRecord.objects.get(search_record_id=search_record_id)
+    papers = []
+    for paper_id in paper_id_list:
+        paper = Paper.objects.get(paper_id=paper_id)
+        papers.append(paper)
+    search_record.related_papers.clear()
+    for paper in papers:
+        search_record.related_papers.add(paper)
+        
+    ### 修改知识库
+    try: 
+        kb_id = build_kb_by_paper_ids(paper_id_list)
+    except Exception as e:
+        return reply.fail(msg="构建知识库失败")
+    
+    return JsonResponse({'msg': '修改成功', 'kb_id' : kb_id}, status=200)
 
 @require_http_methods(["DELETE"])
 def flush(request):
@@ -493,59 +559,3 @@ def flush(request):
         sr.delete()
         HttpRequest('清空成功', status=200)
         
-@require_http_methods(["POST"])
-def get_search_record(request):
-    '''
-    本函数用于获取搜索记录
-    '''
-    username = request.session.get('username')
-    data = json.loads(request.body)
-    search_record_id = data.get('search_record_id')
-    search_record = SearchRecord.objects.filter(search_record_id=search_record_id).first()
-    if search_record is None:
-        return JsonResponse({'error': '搜索记录不存在'}, status=404)
-    else:
-        conversation_path = search_record.conversation_path
-        if os.path.exists(conversation_path):
-            with open(conversation_path, 'r') as f:
-                history = json.load(f)
-            paper_id_list = []
-            for paper in search_record.related_papers.all():
-                paper_id_list.append(paper.paper_id)
-            files = []
-            for id in paper_id_list:
-                p = Paper.objects.get(paper_id=id)
-
-                pdf_url = p.original_url.replace('abs/', 'pdf/') + '.pdf'
-                local_path = settings.PAPERS_URL + str(p.paper_id) + '.pdf'
-                downloadPaper(pdf_url, str(p.paper_id))
-                files.append(
-                    ('files', (p.title + '.pdf', open(local_path, 'rb'),
-                            'application/vnd.openxmlformats-officedocument.presentationml.presentation')))
-
-                pdf_url = p.original_url.replace('abs/','pdf/') + '.pdf'
-                local_path = settings.PAPERS_URL  + str(p.paper_id)
-                paper_nam = str(p.paper_id)
-                print(local_path)
-                print(pdf_url)
-                downloadPaper(pdf_url, paper_nam)
-                files.append(
-                    ('files', (p.title + '.pdf', open(local_path + '.pdf', 'rb'),
-                        'application/vnd.openxmlformats-officedocument.presentationml.presentation')))
-
-            print('下载完毕')
-            upload_temp_docs_url = f'http://{settings.REMOTE_MODEL_BASE_PATH}/knowledge_base/upload_temp_docs'
-            try:
-                response = requests.post(upload_temp_docs_url, files=files)
-            except Exception as e:
-                return reply.fail(msg="连接模型服务器失败")
-            # 关闭文件，防止内存泄露
-            for k, v in files:
-                v[1].close()
-            if response.status_code != 200:
-                return reply.fail(msg="连接模型服务器失败")
-            tmp_kb_id = response.json()['data']['id']
-            
-            return JsonResponse({'coversation' : history['conversation'], 'kb_id' : tmp_kb_id}, status=200)
-        else:
-            return JsonResponse({'error': '搜索记录不存在'}, status=404)
