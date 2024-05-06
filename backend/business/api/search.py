@@ -23,15 +23,10 @@ def build_kb_by_paper_ids(paper_id_list : list[str]):
     输入为paper_id_list，重新构建一个知识库
     '''
     files = []
+    # 至多5个论文
+    paper_id_list = paper_id_list[:5] if len(paper_id_list) > 5 else paper_id_list
     for id in paper_id_list:
         p = Paper.objects.get(paper_id=id)
-
-        pdf_url = p.original_url.replace('abs/', 'pdf/') + '.pdf'
-        local_path = settings.PAPERS_URL + str(p.paper_id) + '.pdf'
-        downloadPaper(pdf_url, str(p.paper_id))
-        files.append(
-            ('files', (p.title + '.pdf', open(local_path, 'rb'),
-                       'application/vnd.openxmlformats-officedocument.presentationml.presentation')))
         pdf_url = p.original_url.replace('abs/','pdf/') + '.pdf'
         local_path = settings.PAPERS_URL  + str(p.paper_id)
         paper_nam = str(p.paper_id)
@@ -480,14 +475,6 @@ def build_kb(request):
     files = []
     for id in paper_id_list:
         p = Paper.objects.get(paper_id=id)
-
-        pdf_url = p.original_url.replace('abs/', 'pdf/') + '.pdf'
-        local_path = settings.PAPERS_URL + str(p.paper_id) + '.pdf'
-        downloadPaper(pdf_url, str(p.paper_id))
-        files.append(
-            ('files', (p.title + '.pdf', open(local_path, 'rb'),
-                       'application/vnd.openxmlformats-officedocument.presentationml.presentation')))
-
         pdf_url = p.original_url.replace('abs/','pdf/') + '.pdf'
         local_path = settings.PAPERS_URL  + str(p.paper_id)
         paper_nam = str(p.paper_id)
