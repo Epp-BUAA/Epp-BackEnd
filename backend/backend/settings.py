@@ -175,6 +175,7 @@ USER_REPORTS_PATH = 'resource/database/users/reports'  # 用户生成报告路�
 USER_SEARCH_CONSERVATION_PATH = 'resource/database/users/conversation/search'  # 调研助手对话文件路径
 USER_READ_CONSERVATION_PATH = 'resource/database/users/conversation/read'  # 论文研读助手对话文件路径
 USER_READ_MAP_PATH = 'resource/database/users/conversation/read/file_reading_2_tmp_kb_id_map.json'
+USER_SEARCH_MAP_PATH = 'resource/database/users/conversation/search/search_record_2_tmp_kb_id_map.json' # 用户搜索记录与知识库id映射
 PAPERS_PATH = 'resource/database/papers/'  # 数据库论文路径
 BATCH_DOWNLOAD_PATH = 'resource/database/users/batch_download'  # 批量下载文件路径
 
