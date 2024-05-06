@@ -39,19 +39,20 @@ def generate_summary(request):
     '''
     生成综述
     '''
+    data = json.loads(request.body)
+    paper_ids = data.get('paper_id_list')
+    username = request.session.get('username')
+    if username is None:
+        username = 'sanyuba'
+    from business.models import SummaryReport, User
+    user = User.objects.filter(username=username).first()
+    report = SummaryReport.objects.create(user_id=user)
+    report.title = '综述'+str(report.report_id)
+    p = settings.USER_REPORTS_PATH + '/' + str(report.report_id) + '.md'
+    report.report_path = p
+    report.save()
     try:
-        data = json.loads(request.body)
-        paper_ids = data.get('paper_id_list')
-        username = request.session.get('username')
-        if username is None:
-            username = 'sanyuba'
-        from business.models import SummaryReport, User
-        user = User.objects.filter(username=username).first()
-        report = SummaryReport.objects.create(user_id=user)
-        report.title = '综述'+str(report.report_id)
-        p = settings.USER_REPORTS_PATH + '/' + str(report.report_id) + '.md'
-        report.local_path = p
-        report.save()
+        print(report.report_id)
         # download_dir = settings.CACHE_PATH + '/' + str(report.report_id)
         # os.makedirs(download_dir)
         # # 先下载文章
@@ -113,6 +114,7 @@ def generate_summary(request):
         return JsonResponse({'message': "综述生成成功"}, status=200)
     except Exception as e:
         print(e)
+        report.delete()
         return JsonResponse({'message': "综述生成失败"}, status=400)
     
     
