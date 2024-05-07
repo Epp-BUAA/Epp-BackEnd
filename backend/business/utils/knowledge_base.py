@@ -50,7 +50,7 @@ def build_kb_by_paper_ids(paper_id_list : list[str]):
     tmp_kb_id = response.json()['data']['id']
     return tmp_kb_id
 
-def build_abs_kb_by_paper_ids(paper_id_list : list[str], file_name):
+def build_abs_kb_by_paper_ids(paper_id_list, file_name):
     '''
     使用摘要构建知识库，加快速度
     '''
