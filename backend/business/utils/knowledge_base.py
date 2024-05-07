@@ -67,10 +67,12 @@ def build_abs_kb_by_paper_ids(paper_id_list, file_name):
     if not os.path.exists(settings.PAPERS_ABS_PATH):
         os.makedirs(settings.PAPERS_ABS_PATH)
     with open(local_path, 'wb') as f:
-        f.write(content)
+        f.write(content.encode())  # 将字符串转换为字节串并写入文件
+    with open(local_path, 'rb') as f:
+        file_content = f.read()  # 读取文件内容为字节串
     files.append(
-        ('files', (file_name + '.txt', open(local_path, 'rb'),
-            'application/vnd.openxmlformats-officedocument.presentationml.presentation')))
+        ('files', (file_name + '.txt', file_content,
+                   'application/vnd.openxmlformats-officedocument.presentationml.presentation')))
     print('下载完毕')
     upload_temp_docs_url = f'http://{settings.REMOTE_MODEL_BASE_PATH}/knowledge_base/upload_temp_docs'
     try:
@@ -78,8 +80,6 @@ def build_abs_kb_by_paper_ids(paper_id_list, file_name):
     except Exception as e:
         raise e
     # 关闭文件，防止内存泄露
-    for k, v in files:
-        v[1].close()
     if response.status_code != 200:
         raise Exception("连接模型服务器失败")
     tmp_kb_id = response.json()['data']['id']
