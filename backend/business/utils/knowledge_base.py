@@ -61,7 +61,10 @@ def build_abs_kb_by_paper_ids(paper_id_list : list[str], file_name : str):
     for id in paper_id_list:
         p = Paper.objects.get(paper_id=id)
         content += p.title + '\n' + p.abstract + '\n'
-    local_path = settings.PAPERS_ABS_PATH + file_name + '.txt'
+    local_path = os.path.join(settings.PAPERS_PATH, file_name + '.txt')
+    # 不存在则创建
+    if not os.path.exists(settings.PAPERS_PATH):
+        os.makedirs(settings.PAPERS_PATH)
     with open(local_path, 'w') as f:
         f.write(content)
     files.append(
