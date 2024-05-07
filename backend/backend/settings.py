@@ -178,6 +178,7 @@ USER_READ_MAP_PATH = 'resource/database/users/conversation/read/file_reading_2_t
 USER_SEARCH_MAP_PATH = 'resource/database/users/conversation/search/search_record_2_tmp_kb_id_map.json' # 用户搜索记录与知识库id映射
 PAPERS_PATH = 'resource/database/papers/'  # 数据库论文路径
 BATCH_DOWNLOAD_PATH = 'resource/database/users/batch_download'  # 批量下载文件路径
+PAPERS_ABS_PATH = 'resource/database/papers/abs/'  # 数据库论文摘要路径
 
 PAPERS_URL = 'resource/database/papers/'  # 数据库论文本地URL
 BATCH_DOWNLOAD_URL = '/resource/database/users/batch_download/'  # 批量下载文件本地URL

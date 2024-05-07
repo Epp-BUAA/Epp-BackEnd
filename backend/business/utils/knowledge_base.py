@@ -49,3 +49,34 @@ def build_kb_by_paper_ids(paper_id_list : list[str]):
         raise Exception("连接模型服务器失败")
     tmp_kb_id = response.json()['data']['id']
     return tmp_kb_id
+
+def build_abs_kb_by_paper_ids(paper_id_list : list[str], file_name : str):
+    '''
+    使用摘要构建知识库，加快速度
+    '''
+    files = []
+    # 至多5个论文
+    paper_id_list = paper_id_list[:5] if len(paper_id_list) > 5 else paper_id_list
+    content = ''
+    for id in paper_id_list:
+        p = Paper.objects.get(paper_id=id)
+        content += p.title + '\n' + p.abstract + '\n'
+    local_path = settings.PAPERS_ABS_PATH + file_name + '.txt'
+    with open(local_path, 'w') as f:
+        f.write(content)
+    files.append(
+        ('files', (file_name + '.txt', open(local_path, 'rb'),
+            'application/vnd.openxmlformats-officedocument.presentationml.presentation')))
+    print('下载完毕')
+    upload_temp_docs_url = f'http://{settings.REMOTE_MODEL_BASE_PATH}/knowledge_base/upload_temp_docs'
+    try:
+        response = requests.post(upload_temp_docs_url, files=files)
+    except Exception as e:
+        raise e
+    # 关闭文件，防止内存泄露
+    for k, v in files:
+        v[1].close()
+    if response.status_code != 200:
+        raise Exception("连接模型服务器失败")
+    tmp_kb_id = response.json()['data']['id']
+    return tmp_kb_id

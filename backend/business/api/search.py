@@ -15,7 +15,7 @@ import numpy as np
 
 import requests
 from business.utils import reply
-from business.utils.knowledge_base import delete_tmp_kb, build_kb_by_paper_ids
+from business.utils.knowledge_base import delete_tmp_kb, build_abs_kb_by_paper_ids
 from business.utils.paper_vdb_init import get_filtered_paper
 from business.utils.download_paper import downloadPaper
 
@@ -258,7 +258,7 @@ def vector_query(request):
     ### 构建知识库 ###
     
     try:
-        tmp_kb_id = build_kb_by_paper_ids([paper.paper_id for paper in filtered_papers])
+        tmp_kb_id = build_abs_kb_by_paper_ids([paper.paper_id for paper in filtered_papers], search_record_id)
         insert_search_record_2_kb(search_record.search_record_id, tmp_kb_id)
     except Exception as e:
         return reply.fail(msg="构建知识库失败")
@@ -289,7 +289,7 @@ def restore_search_record(request):
         paper_infos.append(paper.to_dict())
     history['paper_infos'] = paper_infos
     try:
-        kb_id  = build_kb_by_paper_ids([paper.paper_id for paper in papers])
+        kb_id  = build_abs_kb_by_paper_ids([paper.paper_id for paper in papers], search_record_id)
         insert_search_record_2_kb(search_record_id, kb_id)
         # history['kb_id'] = kb_id
     except Exception as e:
@@ -477,7 +477,7 @@ def build_kb(request):
     data = json.loads(request.body)
     paper_id_list = data.get('paper_id_list')
     try:
-        tmp_kb_id = build_kb_by_paper_ids(paper_id_list)
+        tmp_kb_id = build_abs_kb_by_paper_ids(paper_id_list, 'tmp_kb')
     except Exception as e:
         print(e)
         return reply.fail(msg="构建知识库失败")
@@ -502,7 +502,7 @@ def change_record_papers(request):
         
     ### 修改知识库
     try: 
-        kb_id = build_kb_by_paper_ids(paper_id_list)
+        kb_id = build_abs_kb_by_paper_ids(paper_id_list, search_record_id)
         insert_search_record_2_kb(search_record_id, kb_id)
     except Exception as e:
         return reply.fail(msg="构建知识库失败")
