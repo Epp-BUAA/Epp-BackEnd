@@ -9,7 +9,7 @@ from django.views.decorators.http import require_http_methods
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 from django.core.cache import cache
 import json
-from business.models import User, Paper, Admin, CommentReport, Notification, FirstLevelComment, SecondLevelComment
+from business.models import User, Paper, Admin, CommentReport, Notification, FileReading
 from business.utils import reply
 
 
@@ -176,3 +176,22 @@ def delete_comment(request):
         report.comment_id_2.delete()
 
     return reply.success(msg="评论已删除")
+
+
+@require_http_methods('GET')
+def user_profile(request):
+    username = request.GET.get('username')
+    user = User.objects.filter(username=username).first()
+    documents = FileReading.objects.filter(user_id=user)
+    if user:
+        return reply.success(data={'user_id': user.user_id,
+                                   'username': user.username,
+                                   'avatar': user.avatar.url,
+                                   'registration_date': user.registration_date.strftime("%Y-%m-%d %H:%M:%S"),
+                                   'collected_papers_cnt': user.collected_papers.all().count(),
+                                   'liked_papers_cnt': user.liked_papers.all().count(),
+                                   'documents_cnt': len(documents)
+                                   },
+                             msg='用户信息获取成功')
+    else:
+        return reply.fail(msg="用户不存在")
