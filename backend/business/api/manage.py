@@ -64,7 +64,6 @@ def paper_list(request):
     # manager = Admin.objects.filter(admin_name=manager_name).first()
     # if not manager:
     #     return reply.fail(msg="请完成管理员身份验证")
-
     keyword = request.GET.get('keyword', default=None)  # 搜索关键字
     page_num = request.GET.get('page_num', default=1)  # 页码
     page_size = request.GET.get('page_size', default=15)  # 每页条目数
