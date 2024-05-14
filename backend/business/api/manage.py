@@ -3,6 +3,8 @@
     api/manage/...
     鉴权先不加了吧...
 """
+import math
+
 from django.views.decorators.http import require_http_methods
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 from django.core.cache import cache
@@ -39,14 +41,16 @@ def user_list(request):
         # 如果用户请求的页码号超过了最大页码号，显示最后一页
         contacts = paginator.page(paginator.num_pages)
 
-    data = {"total": len(users), "users": list(map(
-        lambda param: {
-            "user_id": param.user_id,
-            "username": param.username,
-            "password": param.password,
-            "registration_date": param.registration_date.strftime("%Y-%m-%d %H:%M:%S")
-        },
-        contacts))}
+    users = []
+    for user in contacts:
+        users.append({
+            "user_id": user.user_id,
+            "username": user.username,
+            "password": user.password,
+            "registration_date": user.registration_date.strftime("%Y-%m-%d %H:%M:%S")
+        })
+
+    data = {"total": paginator.count, "users": users}
 
     return reply.success(data=data, msg="用户列表获取成功")
 
@@ -69,7 +73,6 @@ def paper_list(request):
     else:
         papers = Paper.objects.all()
 
-    print(page_num, page_size)
     paginator = Paginator(papers, page_size)
     try:
         contacts = paginator.page(page_num)
@@ -77,8 +80,10 @@ def paper_list(request):
         contacts = paginator.page(1)
     except EmptyPage:
         contacts = paginator.page(paginator.num_pages)
-    data = {"total": len(papers), "papers": list(map(
-        lambda paper: {
+
+    papers = []
+    for paper in contacts:
+        papers.append({
             "paper_id": paper.paper_id,
             "title": paper.title,
             "authors": paper.authors.split(','),
@@ -90,8 +95,9 @@ def paper_list(request):
             "collect_count": paper.collect_count,
             "download_count": paper.download_count,
             "score": paper.score
-        },
-        contacts))}
+        })
+
+    data = {"total": paginator.count, "papers": papers}
 
     return reply.success(data=data, msg="论文列表获取成功")
 
