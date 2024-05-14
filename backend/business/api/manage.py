@@ -64,6 +64,7 @@ def paper_list(request):
     # manager = Admin.objects.filter(admin_name=manager_name).first()
     # if not manager:
     #     return reply.fail(msg="请完成管理员身份验证")
+    print(request.GET)
     keyword = request.GET.get('keyword', default=None)  # 搜索关键字
     page_num = int(request.GET.get('page_num', default=1))  # 页码
     page_size = int(request.GET.get('page_size', default=15))  # 每页条目数
@@ -73,19 +74,14 @@ def paper_list(request):
     else:
         papers = Paper.objects.all()
 
-    key = 'paperPaginator'
-    paginator = cache.get(key)
-    if not paginator:
-        paginator = Paginator(papers, page_size)
-        cache.set(key, paginator)
+    print(page_num, page_size)
+    paginator = Paginator(papers, page_size)
     try:
         contacts = paginator.page(page_num)
     except PageNotAnInteger:
         contacts = paginator.page(1)
     except EmptyPage:
         contacts = paginator.page(paginator.num_pages)
-
-    print(len(contacts))
     data = {"total": len(papers), "papers": list(map(
         lambda paper: {
             "paper_id": paper.paper_id,
