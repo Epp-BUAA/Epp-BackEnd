@@ -20,8 +20,8 @@ def user_list(request):
     # if not manager:
     #    return reply.fail(msg="请完成管理员身份验证")
     keyword = request.GET.get('keyword', default=None)  # 搜索关键字
-    page_num = request.GET.get('page_num', default=1)  # 页码
-    page_size = request.GET.get('page_size', default=15)  # 每页条目数
+    page_num = int(request.GET.get('page_num', default=1))  # 页码
+    page_size = int(request.GET.get('page_size', default=15))  # 每页条目数
 
     if keyword and len(keyword) > 0:
         users = User.objects.all().filter(username__contains=keyword)
@@ -65,8 +65,8 @@ def paper_list(request):
     # if not manager:
     #     return reply.fail(msg="请完成管理员身份验证")
     keyword = request.GET.get('keyword', default=None)  # 搜索关键字
-    page_num = request.GET.get('page_num', default=1)  # 页码
-    page_size = request.GET.get('page_size', default=15)  # 每页条目数
+    page_num = int(request.GET.get('page_num', default=1))  # 页码
+    page_size = int(request.GET.get('page_size', default=15))  # 每页条目数
 
     if keyword and len(keyword) > 0:
         papers = Paper.objects.all().filter(title__contains=keyword)
