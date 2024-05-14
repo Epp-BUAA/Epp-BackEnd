@@ -28,12 +28,7 @@ def user_list(request):
     else:
         users = User.objects.all()
 
-    key = 'userPaginator'
-    paginator = cache.get(key)
-    if not paginator:
-        paginator = Paginator(users, page_size)
-        cache.set(key, paginator)
-
+    paginator = Paginator(users, page_size)
     # 分页逻辑
     try:
         contacts = paginator.page(page_num)
