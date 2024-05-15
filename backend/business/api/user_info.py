@@ -207,14 +207,16 @@ def paper_reading_list(request):
     if not user:
         return reply.fail(msg="请先正确登录")
 
-    reading_list = FileReading.objects.filter(Q(user_id=user) & Q(paper_id__isnull=False))
+    reading_list = FileReading.objects.filter(user_id=user).order_by('-date')
     data = {'total': len(reading_list), 'paper_reading_list': []}
     for reading in reading_list:
         data['paper_reading_list'].append({
+            "mode": 1 if reading.paper_id else 2,  # 1: 论文研读，2: 文件研读
             "file_reading_id": reading.id,
-            "paper_id": reading.paper_id.paper_id,  # 研读论文ID
-            "paper_title": reading.paper_id.title,  # 研读论文标题
-            "paper_score": reading.paper_id.score,  # 研读论文评分
+            "paper_id": reading.paper_id.paper_id if reading.paper_id else reading.document_id.document_id,  # 研读论文ID
+            "paper_title": reading.paper_id.title if reading.paper_id else reading.document_id.title,
+            # paper_id为空时，显示文件的标题
+            "paper_score": reading.paper_id.score if reading.paper_id else None,  # 研读论文评分
             # anything to add
             "title": reading.title,  # 研读标题
             "date": reading.date.strftime("%Y-%m-%d %H:%M:%S")  # 上次研读时间
