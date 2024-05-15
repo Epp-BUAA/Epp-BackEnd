@@ -234,12 +234,18 @@ def delete_paper_reading(request):
 
     params: dict = json.loads(request.body)
     paper_ids = params.get("paper_ids", None)  # 需要删除的研读论文ID
+    mode = params.get("mode", 0)  # 1: 论文研读，2: 文件研读
     if not paper_ids or len(paper_ids) == 0:
         # 清空论文研读历史
         reading_list = FileReading.objects.filter(Q(user_id=user) & Q(paper_id__isnull=False))
     else:
         # 删除指定研读历史
-        reading_list = FileReading.objects.filter(Q(user_id=user) & Q(paper_id__in=paper_ids))
+        if mode == 1:
+            reading_list = FileReading.objects.filter(Q(user_id=user) & Q(paper_id__in=paper_ids))
+        elif mode == 2:
+            reading_list = FileReading.objects.filter(Q(user_id=user) & Q(document_id__in=paper_ids))
+        else:
+            reading_list = FileReading.objects.filter(Q(user_id=user) & Q(paper_id__in=paper_ids))
 
     print(len(reading_list))
     for reading in reading_list:
