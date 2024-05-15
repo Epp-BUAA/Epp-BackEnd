@@ -9,7 +9,7 @@ from business.models import User, paper
 import threading, requests
 from business.utils.reply import fail, success
 from django.conf import settings
-from business.models import User, UserDocument, Paper, abstract_report
+from business.models import User, UserDocument, Paper, abstract_report, SummaryReport
 from django.views.decorators.http import require_http_methods
 import os
 
@@ -32,45 +32,15 @@ def queryGLM(msg: str, history=None) -> str:
     )
     print("ChatGLM3-6B：", response.choices[0].message.content)
     history.append({"role": "assistant", "content": response.choices[0].message.content})
-    return response.choices[0].message.content
-    
-@require_http_methods(['POST'])
-def generate_summary(request):
-    '''
-    生成综述
-    '''
-    data = json.loads(request.body)
-    paper_ids = data.get('paper_id_list')
-    username = request.session.get('username')
-    if username is None:
-        username = 'sanyuba'
-    from business.models import SummaryReport, User
-    user = User.objects.filter(username=username).first()
-    report = SummaryReport.objects.create(user_id=user)
-    report.title = '综述'+str(report.report_id)
-    p = settings.USER_REPORTS_PATH + '/' + str(report.report_id) + '.md'
-    report.report_path = p
-    report.save()
+    return response.choices[0].message.content    
+
+def get_summary(paper_ids, report_id):
+    report = SummaryReport.objects.get(report_id=report_id)
     try:
-        print(report.report_id)
-        # download_dir = settings.CACHE_PATH + '/' + str(report.report_id)
-        # os.makedirs(download_dir)
-        # # 先下载文章
-        # for paper_id in paper_ids:
-        #     download_paper(paper_id, download_dir)
-        # # 创建临时知识库
-        # tmp_kb_id = create_tmp_knowledge_base(download_dir)
-        # if tmp_kb_id is None:
-        #     return fail('创建临时知识库失败')
-        # 开始生成综述
-        # keywords = ['现状', '问题', '方法', '结果', '结论', '展望']
-        introduction = '' # 引言
         paper_content = [] # 每个论文一个标题，然后是内容
-        conclusion = '' # 结论
-        paper_conclusions = [] 
+        paper_conclusions = []
         paper_themes = []
         paper_situations = []
-        # 先把每篇论文需要的信息生成好了
         for id in paper_ids:
             p = Paper.objects.filter(paper_id=id).first()
             content_prompt = '将这篇论文的摘要以第三人称的方式复述一遍，摘要如下：\n' + p.abstract
@@ -111,7 +81,58 @@ def generate_summary(request):
         report.save()
         # os.remove(md_path)
         print(response)
-        return JsonResponse({'message': "综述生成成功"}, status=200)
+    except Exception as e:
+        print(e)
+        report.delete()
+    
+@require_http_methods(['GET'])
+def get_summary_status(request):
+    '''
+    查询综述生成状态
+    '''
+    report_id = request.GET.get('report_id')
+    report = SummaryReport.objects.filter(report_id=report_id).first()
+    if report is None:
+        return fail('综述不存在')
+    if report.report_path is None:
+        return success({'status': '正在生成中'})
+    return success({'status': '生成成功'})
+
+@require_http_methods(['POST'])
+def generate_summary(request):
+    '''
+    生成综述
+    '''
+    data = json.loads(request.body)
+    paper_ids = data.get('paper_id_list')
+    username = request.session.get('username')
+    if username is None:
+        username = 'sanyuba'
+    from business.models import SummaryReport, User
+    user = User.objects.filter(username=username).first()
+    report = SummaryReport.objects.create(user_id=user)
+    report.title = '综述'+str(report.report_id)
+    p = settings.USER_REPORTS_PATH + '/' + str(report.report_id) + '.md'
+    report.report_path = p
+    report.save()
+    try:
+        print(report.report_id)
+        # download_dir = settings.CACHE_PATH + '/' + str(report.report_id)
+        # os.makedirs(download_dir)
+        # # 先下载文章
+        # for paper_id in paper_ids:
+        #     download_paper(paper_id, download_dir)
+        # # 创建临时知识库
+        # tmp_kb_id = create_tmp_knowledge_base(download_dir)
+        # if tmp_kb_id is None:
+        #     return fail('创建临时知识库失败')
+        # 开始生成综述
+        # keywords = ['现状', '问题', '方法', '结果', '结论', '展望']
+        if len(paper_ids) > 8:
+            return fail(msg='综述生成输入文章数目过多')
+        # 先把每篇论文需要的信息生成好了
+        threading.Thread(target=get_summary, args=(paper_ids, report.report_id)).start()
+        return JsonResponse({'message': "综述生成成功", 'report_id' : report.report_id}, status=200)
     except Exception as e:
         print(e)
         report.delete()
