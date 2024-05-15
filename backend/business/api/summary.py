@@ -9,7 +9,7 @@ from business.models import User, paper
 import threading, requests
 from business.utils.reply import fail, success
 from django.conf import settings
-from business.models import User, UserDocument, Paper, abstract_report
+from business.models import User, UserDocument, Paper, abstract_report, SummaryReport
 from django.views.decorators.http import require_http_methods
 import os
 
@@ -32,8 +32,55 @@ def queryGLM(msg: str, history=None) -> str:
     )
     print("ChatGLM3-6B：", response.choices[0].message.content)
     history.append({"role": "assistant", "content": response.choices[0].message.content})
-    return response.choices[0].message.content
+    return response.choices[0].message.content    
+
+def get_summary(paper_ids, report_id):
+    report = SummaryReport.objects.get(report_id=report_id)
+    paper_content = [] # 每个论文一个标题，然后是内容
+    paper_conclusions = []
+    paper_themes = []
+    paper_situations = []
+    for id in paper_ids:
+        p = Paper.objects.filter(paper_id=id).first()
+        content_prompt = '将这篇论文的摘要以第三人称的方式复述一遍，摘要如下：\n' + p.abstract
+        paper_content.append(queryGLM(content_prompt, []))
+        content_prompt = '将这篇论文的题目转化为中文：\n' + p.title
+        paper_themes.append(queryGLM(content_prompt, []))
+        content_prompt = '将这篇论文的现状部分以第三人称的方式复述一遍：\n' + p.abstract
+        paper_situations.append(queryGLM(content_prompt, []))
+        content_prompt = '将这篇论文的结论和展望部分以第三人称的方式复述一遍：\n' + p.abstract
+        paper_conclusions.append(queryGLM(content_prompt, []))
+    # 生成引言
+    introduction_prompt = '请根据以下信息生成综述的引言：\n'
+    for i in range(len(paper_ids)):
+        introduction_prompt += '第' + str(i+1) + '篇论文的题目是：' + paper_themes[i] + '\n'
+        introduction_prompt += '第' + str(i+1) + '篇论文的现状部分是：' + paper_situations[i] + '\n'
+    introduction = queryGLM(introduction_prompt, [])
+    # 生成结论
+    conclusion_prompt = '请根据以下信息生成综述的结论：\n'
+    for i in range(len(paper_ids)):
+        conclusion_prompt += '第' + str(i+1) + '篇论文的题目是：' + paper_themes[i] + '\n'
+        conclusion_prompt += '第' + str(i+1) + '篇论文的结论部分是：' + paper_conclusions[i] + '\n'
+    conclusion = queryGLM(conclusion_prompt, [])
     
+    # 生成综述
+    summary = '# 引言\n' + introduction + '\n'
+    summary += '# 正文\n'
+    for i in range(len(paper_ids)):
+        summary += '## ' + paper_themes[i] + '\n'
+        summary += paper_content[i] + '\n'
+    summary += '# 结论\n' + conclusion + '\n'
+    # 修改语病，更加通顺
+    prompt = '这是一篇综述，请让他更加通顺：\n' + summary
+    response = queryGLM(prompt, [])
+    md_path = settings.USER_REPORTS_PATH + '/' + str(report.report_id) + '.md'
+    with open(md_path, 'w', encoding='utf-8') as f:
+        f.write(response)
+    report.report_path = md_path
+    report.save()
+    # os.remove(md_path)
+    print(response)
+
 @require_http_methods(['POST'])
 def generate_summary(request):
     '''
@@ -64,53 +111,10 @@ def generate_summary(request):
         #     return fail('创建临时知识库失败')
         # 开始生成综述
         # keywords = ['现状', '问题', '方法', '结果', '结论', '展望']
-        introduction = '' # 引言
-        paper_content = [] # 每个论文一个标题，然后是内容
-        conclusion = '' # 结论
-        paper_conclusions = [] 
-        paper_themes = []
-        paper_situations = []
+        if len(paper_ids) > 8:
+            return fail(msg='综述生成输入文章数目过多')
         # 先把每篇论文需要的信息生成好了
-        for id in paper_ids:
-            p = Paper.objects.filter(paper_id=id).first()
-            content_prompt = '将这篇论文的摘要以第三人称的方式复述一遍，摘要如下：\n' + p.abstract
-            paper_content.append(queryGLM(content_prompt, []))
-            content_prompt = '将这篇论文的题目转化为中文：\n' + p.title
-            paper_themes.append(queryGLM(content_prompt, []))
-            content_prompt = '将这篇论文的现状部分以第三人称的方式复述一遍：\n' + p.abstract
-            paper_situations.append(queryGLM(content_prompt, []))
-            content_prompt = '将这篇论文的结论和展望部分以第三人称的方式复述一遍：\n' + p.abstract
-            paper_conclusions.append(queryGLM(content_prompt, []))
-        # 生成引言
-        introduction_prompt = '请根据以下信息生成综述的引言：\n'
-        for i in range(len(paper_ids)):
-            introduction_prompt += '第' + str(i+1) + '篇论文的题目是：' + paper_themes[i] + '\n'
-            introduction_prompt += '第' + str(i+1) + '篇论文的现状部分是：' + paper_situations[i] + '\n'
-        introduction = queryGLM(introduction_prompt, [])
-        # 生成结论
-        conclusion_prompt = '请根据以下信息生成综述的结论：\n'
-        for i in range(len(paper_ids)):
-            conclusion_prompt += '第' + str(i+1) + '篇论文的题目是：' + paper_themes[i] + '\n'
-            conclusion_prompt += '第' + str(i+1) + '篇论文的结论部分是：' + paper_conclusions[i] + '\n'
-        conclusion = queryGLM(conclusion_prompt, [])
-        
-        # 生成综述
-        summary = '# 引言\n' + introduction + '\n'
-        summary += '# 正文\n'
-        for i in range(len(paper_ids)):
-            summary += '## ' + paper_themes[i] + '\n'
-            summary += paper_content[i] + '\n'
-        summary += '# 结论\n' + conclusion + '\n'
-        # 修改语病，更加通顺
-        prompt = '这是一篇综述，请让他更加通顺：\n' + summary
-        response = queryGLM(prompt, [])
-        md_path = settings.USER_REPORTS_PATH + '/' + str(report.report_id) + '.md'
-        with open(md_path, 'w', encoding='utf-8') as f:
-            f.write(response)
-        report.report_path = md_path
-        report.save()
-        # os.remove(md_path)
-        print(response)
+        threading.Thread(target=get_summary, args=(paper_ids, report.report_id)).start()
         return JsonResponse({'message': "综述生成成功"}, status=200)
     except Exception as e:
         print(e)
