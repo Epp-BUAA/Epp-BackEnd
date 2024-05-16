@@ -105,9 +105,16 @@ def create_paper_study(request):
         local_path = document.local_path
         content_type = document.format
         title = document.title
-        # 创建一段新的filereading对话, 并设置conversation对话路径，创建json文件
-        file_reading = FileReading(user_id=user, document_id=document, title="上传论文研读",
-                                   conversation_path=None)
+        # 先查找数据库是否有对应的Filereading
+        file_readings = FileReading.objects.filter(document_id=document_id)
+        if file_readings.count() == 0:
+            # 创建一段新的filereading对话, 并设置conversation对话路径，创建json文件
+            file_reading = FileReading(user_id=user, document_id=document, title="上传论文研读",
+                                       conversation_path=None)
+        elif file_readings.count() >= 1:
+            file_reading = file_readings.first()
+        else:
+            return reply.fail(msg="一个用户上传文件存在多个文献研读文件，逻辑有误")
     elif file_type == 2:
         paper_id = request_data.get("paper_id")
         paper = Paper.objects.get(paper_id=paper_id)
@@ -125,10 +132,16 @@ def create_paper_study(request):
     conversation_path = os.path.join(settings.USER_READ_CONSERVATION_PATH, str(file_reading.id) + ".json")
     file_reading.conversation_path = conversation_path
     file_reading.save()
-    if os.path.exists(conversation_path):
-        os.remove(conversation_path)
-    with open(conversation_path, 'w') as f:
-        json.dump({"conversation": []}, f, indent=4)
+    # if os.path.exists(conversation_path):
+    #     os.remove(conversation_path)
+
+    # 此时不存在记录，创建新的
+    if not os.path.exists(conversation_path):
+        with open(conversation_path, 'w') as f:
+            json.dump({"conversation": []}, f, indent=4)
+
+    with open(conversation_path, 'r') as f:
+        history = json.load(f)
 
     # 上传到远端服务器, 创建新的临时知识库
     upload_temp_docs_url = f'http://{settings.REMOTE_MODEL_BASE_PATH}/knowledge_base/upload_temp_docs'
@@ -151,7 +164,7 @@ def create_paper_study(request):
     if response.status_code == 200:
         tmp_kb_id = response.json()['data']['id']
         insert_file_2_kb(str(file_reading.id), tmp_kb_id)
-        return reply.success({'file_reading_id': file_reading.id}, msg="开启文献研读对话成功")
+        return reply.success({'file_reading_id': file_reading.id, "conversation_history": history}, msg="开启文献研读对话成功")
     else:
         return reply.fail(msg="连接模型服务器失败")
 

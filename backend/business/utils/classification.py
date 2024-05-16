@@ -36,17 +36,18 @@ def embed_for_subclass(texts):
 
 def create_labels():
     # 创建新的 Label 实例
-    names = ["目标检测", "图像分类", "图像去噪", "图像分割", "人脸识别", "姿态估计", "动作识别", "人群计数", "医学影像", "三维重建", "对抗样本攻击"]
+    names = ["边缘检测", "目标检测", "图像分类", "图像去噪", "图像分割", "人脸识别", "姿态估计", "动作识别", "人群计数", "医学影像", "三维重建", "对抗样本攻击"]
     for name in names:
         label = Subclass.objects.create(name=name)
         label.save()
 
-def delete_all_subclasses():
-    papers = Paper.objects.all()
-    for paper in tqdm(papers):
-        paper.sub_classes.clear()
-        paper.save()
 
+def delete_all_subclasses():
+    # papers = Paper.objects.all()
+    # for paper in tqdm(papers):
+    #     paper.sub_classes.clear()
+    #     paper.save()
+    Subclass.objects.all().delete()
 '''
     分类思路：
         1. 将所有子类嵌入，与每篇论文的Title和Abstract分别计算余弦相似度
@@ -102,6 +103,6 @@ def classify():
         paper.save()
 
 if __name__ == '__main__':
-    create_labels()
     delete_all_subclasses()
+    create_labels()
     classify()
