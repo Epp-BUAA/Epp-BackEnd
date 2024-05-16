@@ -139,7 +139,7 @@ def vector_query(request):
     search_content = request_data.get('search_content')
     ai_reply = ""
     # filtered_paper = search_paper_with_query(search_content, limit=200) 从这里改为使用服务器的查询接口
-    vector_filtered_papers = get_filtered_paper(search_content, 100, threshold=0.25)  # 这是新版的调用服务器模型的接口
+    vector_filtered_papers = get_filtered_paper(search_content, k=100, threshold=0.3)  # 这是新版的调用服务器模型的接口
 
     # 进行二次关键词检索
     # 首先获取关键词, 同样使用chatglm6b的普通对话

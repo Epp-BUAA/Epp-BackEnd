@@ -5,6 +5,7 @@ from django.db import models
 import uuid
 
 from business.utils import storage
+from .subclass import Subclass
 
 
 class Paper(models.Model):
@@ -43,6 +44,7 @@ class Paper(models.Model):
     score = models.FloatField(default=0.0)
     score_count = models.IntegerField(default=0)
     local_path = models.CharField(max_length=255)  # 本地地址，允许为空
+    sub_classes = models.ManyToManyField(Subclass, related_name='papers')
 
     def __str__(self):
         return self.title
@@ -72,7 +74,8 @@ class Paper(models.Model):
             'comment_count': self.comment_count,
             'download_count': self.download_count,
             'score': self.score,
-            'score_count': self.score_count
+            'score_count': self.score_count,
+            'sub_classes': list(self.sub_classes.values_list('name', flat=True))
         }
 
     def __eq__(self, other):
