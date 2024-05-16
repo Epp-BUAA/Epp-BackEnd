@@ -3,13 +3,12 @@
     api/manage/...
     鉴权先不加了吧...
 """
-import math
-
 from django.views.decorators.http import require_http_methods
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
-from django.core.cache import cache
+from collections import defaultdict
+
 import json
-from business.models import User, Paper, Admin, CommentReport, Notification, FileReading
+from business.models import User, Paper, Admin, CommentReport, Notification, UserDocument, UserDailyAddition
 from business.utils import reply
 
 
@@ -180,9 +179,10 @@ def delete_comment(request):
 
 @require_http_methods('GET')
 def user_profile(request):
+    """ 用户资料 """
     username = request.GET.get('username')
     user = User.objects.filter(username=username).first()
-    documents = FileReading.objects.filter(user_id=user)
+    documents = UserDocument.objects.filter(user_id=user)
     if user:
         return reply.success(data={'user_id': user.user_id,
                                    'username': user.username,
@@ -195,3 +195,29 @@ def user_profile(request):
                              msg='用户信息获取成功')
     else:
         return reply.fail(msg="用户不存在")
+
+
+@require_http_methods('GET')
+def user_statistic(request):
+    """ 用户统计数据 """
+    mode = int(request.GET.get('mode', default=0))
+    if mode == 1:
+        # 用户统计概述
+        user_total = len(User.objects.all())
+        document_total = len(UserDocument.objects.all())
+        return reply.success(data={'user_cnt': user_total, 'document_cnt': document_total}, msg="统计数据获取成功")
+    elif mode == 2:
+        # 用户月统计
+        users = User.objects.all().order_by('registration_date')
+        user_dict = defaultdict(int)
+
+        # 统计每天注册的用户数量
+        for user in users:
+            registration_day = user.registration_date.date()
+            user_dict[registration_day] += 1
+
+        # 遍历统计结果，创建相应的 UserStatistic 实例并保存
+
+        return reply.fail(msg="统计数据获取成功")
+    else:
+        return reply.fail(msg="mode参数错误")
