@@ -3,6 +3,8 @@
     api/manage/...
     鉴权先不加了吧...
 """
+import math
+
 from django.views.decorators.http import require_http_methods
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 
@@ -230,7 +232,7 @@ def user_statistic(request):
 
         # 返回统计数据
         total = len(User.objects.all())  # 用户总数
-        max_total = total + 10  # 最大用户总数
+        max_total = math.ceil(total / 5) * 5  # 最大用户总数
         max_addition = 0  # 最大用户增量
         data = {
             'months': [month.strftime('%Y-%m') for month in months],
@@ -251,7 +253,7 @@ def user_statistic(request):
             data['user_total']['data'].append(total)
             total -= month_data[month]['user_addition']
 
-        data['user_addition']['max'] = max_addition + 10
+        data['user_addition']['max'] = math.ceil(max_addition / 5) * 5
         data['user_addition']['data'] = data['user_addition']['data'][::-1]
         data['user_total']['data'] = data['user_total']['data'][::-1]
 
