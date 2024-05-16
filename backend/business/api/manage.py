@@ -5,11 +5,24 @@
 """
 from django.views.decorators.http import require_http_methods
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
-from collections import defaultdict
 
 import json
+import datetime
 from business.models import User, Paper, Admin, CommentReport, Notification, UserDocument, UserDailyAddition
 from business.utils import reply
+
+
+def get_last_10_months():
+    """ 获取近十个月 """
+    current_date = datetime.datetime.now()
+    months = []
+
+    for i in range(10):
+        current_date = current_date.replace(day=1)
+        months.append(current_date)
+        current_date -= datetime.timedelta(days=current_date.day)
+
+    return months[::-1]
 
 
 @require_http_methods('GET')
@@ -208,16 +221,40 @@ def user_statistic(request):
         return reply.success(data={'user_cnt': user_total, 'document_cnt': document_total}, msg="统计数据获取成功")
     elif mode == 2:
         # 用户月统计
-        users = User.objects.all().order_by('registration_date')
-        user_dict = defaultdict(int)
+        user_addition = UserDailyAddition.objects.all()
+        months = get_last_10_months()
+        # 月统计数据对象
+        month_data = {month.strftime('%Y-%m'): {'user_addition': 0, 'user_total': 0} for month in months}
+        for addition in user_addition:
+            month_data[addition.date.strftime('%Y-%m')]['user_addition'] += addition.addition
 
-        # 统计每天注册的用户数量
-        for user in users:
-            registration_day = user.registration_date.date()
-            user_dict[registration_day] += 1
+        # 返回统计数据
+        total = len(User.objects.all())  # 用户总数
+        max_total = total + 10  # 最大用户总数
+        max_addition = 0  # 最大用户增量
+        data = {
+            'months': [month.strftime('%Y-%m') for month in months],
+            'user_addition': {
+                'data': [],
+                'max': 0
+            },
 
-        # 遍历统计结果，创建相应的 UserStatistic 实例并保存
+            'user_total': {
+                'data': [],
+                'max': max_total
+            },
+        }
+        for month in data['months'][::-1]:
+            max_addition = max_addition if max_addition > month_data[month]['user_addition'] else month_data[month][
+                'user_addition']
+            data['user_addition']['data'].append(month_data[month]['user_addition'])
+            data['user_total']['data'].append(total)
+            total -= month_data[month]['user_addition']
 
-        return reply.fail(msg="统计数据获取成功")
+        data['user_addition']['max'] = max_addition + 10
+        data['user_addition']['data'] = data['user_addition']['data'][::-1]
+        data['user_total']['data'] = data['user_total']['data'][::-1]
+
+        return reply.success(data=data, msg="统计数据获取成功")
     else:
         return reply.fail(msg="mode参数错误")
