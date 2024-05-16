@@ -42,7 +42,7 @@ def signup(request):
             user = User(username=username, password=password)
             user.save()
             current_day = date.today()
-            record = UserDailyAddition.objects.filter().first()
+            record = UserDailyAddition.objects.filter(date=current_day).first()
             if record:
                 # 有记录
                 record.addition += 1
