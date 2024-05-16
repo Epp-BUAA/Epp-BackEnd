@@ -1,12 +1,14 @@
-from business.models.user import User
-from business.models.admin import Admin
-from django.http import JsonResponse
-import json
-
 """
     用户认证及管理员认证模块
     登录、注册、登出、用户信息
 """
+
+from business.models.user import User
+from business.models.admin import Admin
+from business.models.statistic import UserDailyAddition
+from django.http import JsonResponse
+import json
+from datetime import date
 
 
 def login(request):
@@ -39,6 +41,16 @@ def signup(request):
         else:
             user = User(username=username, password=password)
             user.save()
+            current_day = date.today()
+            record = UserDailyAddition.objects.filter().first()
+            if record:
+                # 有记录
+                record.addition += 1
+                record.save()
+            else:
+                # 没有记录
+                UserDailyAddition(addition=1).save()
+
             return JsonResponse(
                 {'message': "注册成功", 'userExists': False, 'user_id': user.user_id, 'username': user.username,
                  'avatar': user.avatar.url})
