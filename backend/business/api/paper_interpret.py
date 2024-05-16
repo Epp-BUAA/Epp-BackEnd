@@ -38,9 +38,10 @@ def create_content_disposition(filename):
     disposition = f'form-data; name="file"; filename="{filename}"; filename*=UTF-8\'\'{safe_filename}'
     return disposition
 
+
 # 删除Tmp_kb的缓存，用于某tmp_kb_id再也不被使用时，避免内存爆炸
 def delete_tmp_kb(tmp_kb_id):
-    delete_tmp_kb_url =f'http://{settings.REMOTE_MODEL_BASE_PATH}/knowledge_base/delete_temp_docs'
+    delete_tmp_kb_url = f'http://{settings.REMOTE_MODEL_BASE_PATH}/knowledge_base/delete_temp_docs'
     # headers = {
     #     'Content-Type': 'application/x-www-form-urlencoded'
     # }
@@ -52,6 +53,7 @@ def delete_tmp_kb(tmp_kb_id):
         return True
     else:
         return False
+
 
 # 建立file_reading和tmp_kb的映射
 def insert_file_2_kb(file_reading_id, tmp_kb_id):
