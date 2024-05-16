@@ -5,9 +5,10 @@
 """
 from django.views.decorators.http import require_http_methods
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
-from django.core.cache import cache
+from collections import defaultdict
+
 import json
-from business.models import User, Paper, Admin, CommentReport, Notification, FirstLevelComment, SecondLevelComment
+from business.models import User, Paper, Admin, CommentReport, Notification, UserDocument, UserDailyAddition
 from business.utils import reply
 
 
@@ -20,20 +21,15 @@ def user_list(request):
     # if not manager:
     #    return reply.fail(msg="请完成管理员身份验证")
     keyword = request.GET.get('keyword', default=None)  # 搜索关键字
-    page_num = request.GET.get('page_num', default=1)  # 页码
-    page_size = request.GET.get('page_size', default=15)  # 每页条目数
+    page_num = int(request.GET.get('page_num', default=1))  # 页码
+    page_size = int(request.GET.get('page_size', default=15))  # 每页条目数
 
     if keyword and len(keyword) > 0:
         users = User.objects.all().filter(username__contains=keyword)
     else:
         users = User.objects.all()
 
-    key = 'userPaginator'
-    paginator = cache.get(key)
-    if not paginator:
-        paginator = Paginator(users, page_size)
-        cache.set(key, paginator)
-
+    paginator = Paginator(users, page_size)
     # 分页逻辑
     try:
         contacts = paginator.page(page_num)
@@ -44,14 +40,16 @@ def user_list(request):
         # 如果用户请求的页码号超过了最大页码号，显示最后一页
         contacts = paginator.page(paginator.num_pages)
 
-    data = {"total": len(users), "users": list(map(
-        lambda param: {
-            "user_id": param.user_id,
-            "username": param.username,
-            "password": param.password,
-            "registration_date": param.registration_date.strftime("%Y-%m-%d %H:%M:%S")
-        },
-        contacts))}
+    users = []
+    for user in contacts:
+        users.append({
+            "user_id": user.user_id,
+            "username": user.username,
+            "password": user.password,
+            "registration_date": user.registration_date.strftime("%Y-%m-%d %H:%M:%S")
+        })
+
+    data = {"total": paginator.count, "users": users}
 
     return reply.success(data=data, msg="用户列表获取成功")
 
@@ -64,21 +62,17 @@ def paper_list(request):
     # manager = Admin.objects.filter(admin_name=manager_name).first()
     # if not manager:
     #     return reply.fail(msg="请完成管理员身份验证")
-
+    print(request.GET)
     keyword = request.GET.get('keyword', default=None)  # 搜索关键字
-    page_num = request.GET.get('page_num', default=1)  # 页码
-    page_size = request.GET.get('page_size', default=15)  # 每页条目数
+    page_num = int(request.GET.get('page_num', default=1))  # 页码
+    page_size = int(request.GET.get('page_size', default=15))  # 每页条目数
 
     if keyword and len(keyword) > 0:
         papers = Paper.objects.all().filter(title__contains=keyword)
     else:
         papers = Paper.objects.all()
 
-    key = 'paperPaginator'
-    paginator = cache.get(key)
-    if not paginator:
-        paginator = Paginator(papers, page_size)
-        cache.set(key, paginator)
+    paginator = Paginator(papers, page_size)
     try:
         contacts = paginator.page(page_num)
     except PageNotAnInteger:
@@ -86,9 +80,9 @@ def paper_list(request):
     except EmptyPage:
         contacts = paginator.page(paginator.num_pages)
 
-    print(len(contacts))
-    data = {"total": len(papers), "papers": list(map(
-        lambda paper: {
+    papers = []
+    for paper in contacts:
+        papers.append({
             "paper_id": paper.paper_id,
             "title": paper.title,
             "authors": paper.authors.split(','),
@@ -100,8 +94,9 @@ def paper_list(request):
             "collect_count": paper.collect_count,
             "download_count": paper.download_count,
             "score": paper.score
-        },
-        contacts))}
+        })
+
+    data = {"total": paginator.count, "papers": papers}
 
     return reply.success(data=data, msg="论文列表获取成功")
 
@@ -180,3 +175,49 @@ def delete_comment(request):
         report.comment_id_2.delete()
 
     return reply.success(msg="评论已删除")
+
+
+@require_http_methods('GET')
+def user_profile(request):
+    """ 用户资料 """
+    username = request.GET.get('username')
+    user = User.objects.filter(username=username).first()
+    documents = UserDocument.objects.filter(user_id=user)
+    if user:
+        return reply.success(data={'user_id': user.user_id,
+                                   'username': user.username,
+                                   'avatar': user.avatar.url,
+                                   'registration_date': user.registration_date.strftime("%Y-%m-%d %H:%M:%S"),
+                                   'collected_papers_cnt': user.collected_papers.all().count(),
+                                   'liked_papers_cnt': user.liked_papers.all().count(),
+                                   'documents_cnt': len(documents)
+                                   },
+                             msg='用户信息获取成功')
+    else:
+        return reply.fail(msg="用户不存在")
+
+
+@require_http_methods('GET')
+def user_statistic(request):
+    """ 用户统计数据 """
+    mode = int(request.GET.get('mode', default=0))
+    if mode == 1:
+        # 用户统计概述
+        user_total = len(User.objects.all())
+        document_total = len(UserDocument.objects.all())
+        return reply.success(data={'user_cnt': user_total, 'document_cnt': document_total}, msg="统计数据获取成功")
+    elif mode == 2:
+        # 用户月统计
+        users = User.objects.all().order_by('registration_date')
+        user_dict = defaultdict(int)
+
+        # 统计每天注册的用户数量
+        for user in users:
+            registration_day = user.registration_date.date()
+            user_dict[registration_day] += 1
+
+        # 遍历统计结果，创建相应的 UserStatistic 实例并保存
+
+        return reply.fail(msg="统计数据获取成功")
+    else:
+        return reply.fail(msg="mode参数错误")

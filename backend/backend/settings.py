@@ -51,7 +51,7 @@ MIDDLEWARE = [
 ]
 
 # 设置跨域SESSION配置，本地测试时需要SESSION_COOKIE_SECURE = False
-SESSION_COOKIE_SECURE = False
+SESSION_COOKIE_SECURE = True
 SESSION_COOKIE_SAMESITE = 'None'
 CORS_ALLOW_CREDENTIALS = True
 
@@ -61,6 +61,7 @@ X_FRAME_OPTIONS = 'SAMEORIGIN'
 # 配置为true会出问题
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:8080',
+    'http://localhost:5173',
     'http://127.0.0.1:8080',
     'http://localhost:10516',
     'http://127.0.0.1:10516',
@@ -175,8 +176,10 @@ USER_REPORTS_PATH = 'resource/database/users/reports'  # 用户生成报告路�
 USER_SEARCH_CONSERVATION_PATH = 'resource/database/users/conversation/search'  # 调研助手对话文件路径
 USER_READ_CONSERVATION_PATH = 'resource/database/users/conversation/read'  # 论文研读助手对话文件路径
 USER_READ_MAP_PATH = 'resource/database/users/conversation/read/file_reading_2_tmp_kb_id_map.json'
+USER_SEARCH_MAP_PATH = 'resource/database/users/conversation/search/search_record_2_tmp_kb_id_map.json'  # 用户搜索记录与知识库id映射
 PAPERS_PATH = 'resource/database/papers/'  # 数据库论文路径
 BATCH_DOWNLOAD_PATH = 'resource/database/users/batch_download'  # 批量下载文件路径
+PAPERS_ABS_PATH = 'resource/database/papers/abs/'  # 数据库论文摘要路径
 
 PAPERS_URL = 'resource/database/papers/'  # 数据库论文本地URL
 BATCH_DOWNLOAD_URL = '/resource/database/users/batch_download/'  # 批量下载文件本地URL

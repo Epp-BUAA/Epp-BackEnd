@@ -30,7 +30,7 @@ from business.api import user_info, manage
 from business.api.search import get_user_search_history, vector_query, dialog_query, flush, restore_search_record, \
     build_kb, change_record_papers
 from business.utils.paper_vdb_init import local_vdb_init, easy_vector_query
-from business.api.summary import generate_summary, create_abstract_report
+from business.api.summary import generate_summary, create_abstract_report, get_summary_status
 
 urlpatterns = [
                   path("admin/", admin.site.urls),
@@ -84,6 +84,8 @@ urlpatterns = [
                   path("api/manage/commentReport", manage.comment_report_list),
                   path("api/manage/judgeCmtRpt", manage.judge_comment_report),
                   path("api/manage/delComment", manage.delete_comment),
+                  path("api/manage/userProfile", manage.user_profile),
+                  path("api/manage/userStatistic", manage.user_statistic),
 
                   # 信息检索模块
                   path("api/search/easyVectorQuery", easy_vector_query),
@@ -114,4 +116,5 @@ urlpatterns = [
                   # 综述摘要生成
                   path("api/summary/generateSummaryReport", generate_summary),
                   path("api/summary/generateAbstractReport", create_abstract_report),
+                  path("api/summary/getSummaryStatus", get_summary_status),
               ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

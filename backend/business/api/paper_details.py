@@ -189,6 +189,7 @@ def get_first_comment(request):
         comments = FirstLevelComment.objects.filter(paper_id=paper_id)
         data = []
         for comment in comments:
+            second_len = SecondLevelComment.objects.filter(level1_comment_id=comment.comment_id).count()
             data.append({
                 'comment_id': comment.comment_id,
                 'date': comment.date.strftime("%Y-%m-%d %H:%M:%S"),
@@ -196,9 +197,11 @@ def get_first_comment(request):
                 'like_count': comment.like_count,
                 'username': comment.user_id.username,
                 'user_image': comment.user_id.avatar.url,
-                'user_liked': comment.liked_by_users.filter(username=user).first() is not None
+                'user_liked': comment.liked_by_users.filter(username=user).first() is not None,
+                'second_len': second_len
             })
-        return JsonResponse({'message': '获取成功', 'comments': data, 'is_success': True})
+        total = len(data)
+        return JsonResponse({'message': '获取成功', 'total': total, 'comments': data, 'is_success': True})
     else:
         return JsonResponse({'error': '请求方法错误', 'is_success': False}, status=400)
 
