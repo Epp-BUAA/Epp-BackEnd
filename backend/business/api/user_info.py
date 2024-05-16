@@ -159,7 +159,7 @@ def summary_report_list(request):
     if not user:
         return reply.fail(msg="请先正确登录")
 
-    summary_reports = SummaryReport.objects.filter(user_id=user)
+    summary_reports = SummaryReport.objects.filter(user_id=user, status=SummaryReport.STATUS_COMPLETED)
     data = {'total': len(summary_reports), 'reports': []}
     for report in summary_reports:
         data['reports'].append({

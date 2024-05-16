@@ -36,6 +36,7 @@ def queryGLM(msg: str, history=None) -> str:
 
 def get_summary(paper_ids, report_id):
     report = SummaryReport.objects.get(report_id=report_id)
+    report.status = SummaryReport.STATUS_IN_PROGRESS
     try:
         paper_content = [] # 每个论文一个标题，然后是内容
         paper_conclusions = []
@@ -78,6 +79,7 @@ def get_summary(paper_ids, report_id):
         with open(md_path, 'w', encoding='utf-8') as f:
             f.write(response)
         report.report_path = md_path
+        report.status = SummaryReport.STATUS_COMPLETED
         report.save()
         # os.remove(md_path)
         print(response)
@@ -94,7 +96,7 @@ def get_summary_status(request):
     report = SummaryReport.objects.filter(report_id=report_id).first()
     if report is None:
         return fail('综述不存在')
-    if report.report_path is None:
+    if report.status == SummaryReport.STATUS_PENDING or report.status == SummaryReport.STATUS_IN_PROGRESS:
         return success({'status': '正在生成中'})
     return success({'status': '生成成功'})
 
@@ -110,7 +112,7 @@ def generate_summary(request):
         username = 'sanyuba'
     from business.models import SummaryReport, User
     user = User.objects.filter(username=username).first()
-    report = SummaryReport.objects.create(user_id=user)
+    report = SummaryReport.objects.create(user_id=user, status=SummaryReport.STATUS_PENDING)
     report.title = '综述'+str(report.report_id)
     p = settings.USER_REPORTS_PATH + '/' + str(report.report_id) + '.md'
     report.report_path = p
