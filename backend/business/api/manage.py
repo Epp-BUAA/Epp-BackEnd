@@ -10,7 +10,7 @@ from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 
 import json
 import datetime
-from business.models import User, Paper, Admin, CommentReport, Notification, UserDocument, UserDailyAddition
+from business.models import User, Paper, Admin, CommentReport, Notification, UserDocument, UserDailyAddition, Sub
 from business.utils import reply
 
 
@@ -291,8 +291,9 @@ def paper_statistic(request):
     """ 论文统计数据 """
     mode = int(request.GET.get('mode', default=0))
     if mode == 1:
-        # 数据库论文概述
-        pass
+        # 论文总数、领域个数
+        return reply.success(data={'paper_cnt': len(Paper.objects.all())
+                                   'subclass_cnt': len()}, msg="论文数据获取成功")
     elif mode == 2:
         # 论文统计图表
         pass
