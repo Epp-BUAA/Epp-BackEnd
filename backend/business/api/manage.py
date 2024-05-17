@@ -77,7 +77,6 @@ def paper_list(request):
     # manager = Admin.objects.filter(admin_name=manager_name).first()
     # if not manager:
     #     return reply.fail(msg="请完成管理员身份验证")
-    print(request.GET)
     keyword = request.GET.get('keyword', default=None)  # 搜索关键字
     page_num = int(request.GET.get('page_num', default=1))  # 页码
     page_size = int(request.GET.get('page_size', default=15))  # 每页条目数
@@ -104,10 +103,6 @@ def paper_list(request):
             "publication_date": paper.publication_date.strftime("%Y-%m-%d"),
             "journal": paper.journal,
             "citation_count": paper.citation_count,
-            "read_count": paper.read_count,
-            "like_count": paper.like_count,
-            "collect_count": paper.collect_count,
-            "download_count": paper.download_count,
             "score": paper.score
         })
 
@@ -213,6 +208,35 @@ def user_profile(request):
 
 
 @require_http_methods('GET')
+def paper_outline(request):
+    """ 论文概要信息 """
+    paper_id = request.GET.get('paper_id')
+    paper = Paper.objects.filter(paper_id=paper_id).first()
+    if paper:
+        return reply.success(data={
+            'paper_id': paper.paper_id,
+            'title': paper.title,
+            'authors': paper.authors,
+            'abstract': paper.abstract,
+            'publication_date': paper.publication_date.strftime("%Y-%m-%d"),
+            'journal': paper.journal,
+            'citation_count': paper.citation_count,
+            'read_count': paper.read_count,
+            'like_count': paper.like_count,
+            'collect_count': paper.collect_count,
+            'download_count': paper.download_count,
+            'comment_count': paper.comment_count,
+            'score': paper.score,
+            'score_count': paper.score_count,
+            'original_url': paper.original_url,
+            'subclasses': [subclass.name for subclass in paper.sub_classes.all()]
+        }, msg='论文详情获取成功')
+
+    else:
+        return reply.fail(msg='文献不存在')
+
+
+@require_http_methods('GET')
 def user_statistic(request):
     """ 用户统计数据 """
     mode = int(request.GET.get('mode', default=0))
@@ -258,5 +282,20 @@ def user_statistic(request):
         data['user_total']['data'] = data['user_total']['data'][::-1]
 
         return reply.success(data=data, msg="统计数据获取成功")
+    else:
+        return reply.fail(msg="mode参数错误")
+
+
+@require_http_methods('GET')
+def paper_statistic(request):
+    """ 论文统计数据 """
+    mode = int(request.GET.get('mode', default=0))
+    if mode == 1:
+        # 数据库论文概述
+        pass
+    elif mode == 2:
+        # 论文统计图表
+        pass
+
     else:
         return reply.fail(msg="mode参数错误")
