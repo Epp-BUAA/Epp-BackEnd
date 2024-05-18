@@ -27,6 +27,19 @@ def get_last_10_months():
     return months[::-1]
 
 
+def get_last_5_years():
+    """ 获取近五年 """
+    current_date = datetime.datetime.now()
+    years = []
+
+    for i in range(5):
+        current_date = current_date.replace(month=1, day=1)
+        years.append(current_date)
+        current_date -= datetime.timedelta(days=current_date.day)
+
+    return years[::-1]
+
+
 @require_http_methods('GET')
 def user_list(request):
     """ 检索用户列表 """
@@ -264,7 +277,6 @@ def user_statistic(request):
                 'data': [],
                 'max': 0
             },
-
             'user_total': {
                 'data': [],
                 'max': max_total
@@ -292,11 +304,29 @@ def paper_statistic(request):
     mode = int(request.GET.get('mode', default=0))
     if mode == 1:
         # 论文总数、领域个数
-        return reply.success(data={'paper_cnt': len(Paper.objects.all()),
-                                   'subclass_cnt': len(Subclass.objects.all())}, msg="论文数据获取成功")
+        return reply.success(data={'paper_cnt': len(Paper.objects.all()), 'subclass_cnt': len(Subclass.objects.all())},
+                             msg="论文数据获取成功")
     elif mode == 2:
-        # 论文统计图表
-        pass
+        # 论文年限统计
+        papers = Paper.objects.all()
+        years = get_last_5_years()
+        # 添加年份数据
+        year_data = {year.strftime('%Y'): 0 for year in years}
+        for paper in papers:
+            year_data[paper.publication_date.strftime('%Y')] += 1
+        data = {
+            'years': [],
+            'data': []
+        }
+        for year in years:
+            data['years'].append(year.strftime('%Y'))
+            data['data'].append(year_data[year.strftime('%Y')])
+        return reply.success(data=data, msg='年份数据获取成功')
 
+    elif mode == 3:
+        # 论文类别统计
+        papers = Paper.objects.all()
+
+        pass
     else:
         return reply.fail(msg="mode参数错误")
