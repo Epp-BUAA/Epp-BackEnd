@@ -4,7 +4,7 @@
 import os
 from backend.settings import USER_DOCUMENTS_PATH
 from backend.settings import USER_DOCUMENTS_URL
-from business.models import User, UserDocument
+from business.models import User, UserDocument, FileReading
 from django.http import JsonResponse
 import json
 import random
@@ -90,9 +90,11 @@ def document_list(request):
     data = {'total': len(documents), 'documents': []}
     for document in documents:
         url = USER_DOCUMENTS_URL + os.path.basename(document.local_path)
+        file_reading_id = FileReading.objects.filter(document_id=document.document_id).first()
         data['documents'].append({
             "document_id": document.document_id,
             "document_url": url,
+            "file_reading_id": file_reading_id, # 没有研读历史则为None
             "title": document.title,
             "format": document.format,
             "size": document.size,
