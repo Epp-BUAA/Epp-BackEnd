@@ -6,6 +6,7 @@
 import math
 
 from django.views.decorators.http import require_http_methods
+from django.db.models import Count
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 
 import json
@@ -255,8 +256,8 @@ def user_statistic(request):
     mode = int(request.GET.get('mode', default=0))
     if mode == 1:
         # 用户统计概述
-        user_total = len(User.objects.all())
-        document_total = len(UserDocument.objects.all())
+        user_total = User.objects.count()
+        document_total = UserDocument.objects.count()
         return reply.success(data={'user_cnt': user_total, 'document_cnt': document_total}, msg="统计数据获取成功")
     elif mode == 2:
         # 用户月统计
@@ -268,7 +269,7 @@ def user_statistic(request):
             month_data[addition.date.strftime('%Y-%m')]['user_addition'] += addition.addition
 
         # 返回统计数据
-        total = len(User.objects.all())  # 用户总数
+        total = User.objects.count()  # 用户总数
         max_total = math.ceil(total / 5) * 5  # 最大用户总数
         max_addition = 0  # 最大用户增量
         data = {
@@ -304,23 +305,24 @@ def paper_statistic(request):
     mode = int(request.GET.get('mode', default=0))
     if mode == 1:
         # 论文总数、领域个数
-        return reply.success(data={'paper_cnt': len(Paper.objects.all()), 'subclass_cnt': len(Subclass.objects.all())},
+        return reply.success(data={'paper_cnt': Paper.objects.count(), 'subclass_cnt': Subclass.objects.count()},
                              msg="论文数据获取成功")
     elif mode == 2:
         # 论文年限统计
-        papers = Paper.objects.all()
         years = get_last_5_years()
-        # 添加年份数据
-        year_data = {year.strftime('%Y'): 0 for year in years}
-        for paper in papers:
-            year_data[paper.publication_date.strftime('%Y')] += 1
-        data = {
-            'years': [],
-            'data': []
-        }
-        for year in years:
-            data['years'].append(year.strftime('%Y'))
-            data['data'].append(year_data[year.strftime('%Y')])
+
+        years_data = Paper.objects.filter(publication_date__gte=years[0]) \
+            .values('publication_date__year') \
+            .annotate(total=Count('paper_id')) \
+            .order_by('publication_date__year')
+
+        # 将查询结果转换为字典格式
+        data = {'years': [year.strftime('%Y') for year in years], 'data': []}
+        for item in years_data:
+            data['data'].append(item['total'])
+        for i in range(len(years_data), 5):
+            data['data'].append(0)
+
         return reply.success(data=data, msg='年份数据获取成功')
 
     elif mode == 3:
