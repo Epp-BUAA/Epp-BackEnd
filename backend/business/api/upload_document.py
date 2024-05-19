@@ -90,11 +90,11 @@ def document_list(request):
     data = {'total': len(documents), 'documents': []}
     for document in documents:
         url = USER_DOCUMENTS_URL + os.path.basename(document.local_path)
-        file_reading_id = FileReading.objects.filter(document_id=document.document_id).first()
+        file_reading = FileReading.objects.filter(document_id=document.document_id).first()
         data['documents'].append({
             "document_id": document.document_id,
             "document_url": url,
-            "file_reading_id": file_reading_id, # 没有研读历史则为None
+            "file_reading_id": file_reading.id if file_reading else None,
             "title": document.title,
             "format": document.format,
             "size": document.size,
