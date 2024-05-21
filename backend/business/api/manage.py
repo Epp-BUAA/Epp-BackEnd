@@ -11,6 +11,7 @@ from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 
 import json
 import datetime
+from collections import defaultdict
 from business.models import User, Paper, Admin, CommentReport, Notification, UserDocument, UserDailyAddition, Subclass
 from business.utils import reply
 
@@ -230,7 +231,7 @@ def paper_outline(request):
         return reply.success(data={
             'paper_id': paper.paper_id,
             'title': paper.title,
-            'authors': paper.authors,
+            'authors': paper.authors.split(','),
             'abstract': paper.abstract,
             'publication_date': paper.publication_date.strftime("%Y-%m-%d"),
             'journal': paper.journal,
@@ -327,8 +328,20 @@ def paper_statistic(request):
 
     elif mode == 3:
         # 论文类别统计
-        papers = Paper.objects.all()
+        years = get_last_5_years()
+        years_data = defaultdict(lambda: defaultdict(int))
+        for year in years:
+            # 查询当前年份内的所有论文
+            papers = Paper.objects.filter(publication_date__year=year.year)
+            subclass_counts = papers.values('sub_classes__name').annotate(count=Count('sub_classes__name'))
 
-        pass
+            # 存储在字典中
+            for rec in subclass_counts:
+                subclass_name = rec['sub_classes__name']
+                count = rec['count']
+                years_data[year.strftime('%Y')][subclass_name] = count
+
+        return reply.success(data={'years': [year.strftime('%Y') for year in years],
+                                   'data': years_data}, msg="领域统计数据获取成功")
     else:
         return reply.fail(msg="mode参数错误")
