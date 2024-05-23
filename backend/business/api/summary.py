@@ -232,6 +232,9 @@ def create_abstract_report(request):
     report_path = os.path.join(settings.USER_REPORTS_PATH, str(title) + '.md')
     print(report_path)
     pdf_path = os.path.join(settings.USER_REPORTS_PATH, str(title) + '.pdf')
+    ar = AbstractReport.objects.filter(file_local_path=local_path).first()
+    if ar is not None and not os.path.exists(ar.report_path):
+        return fail(msg="文件不存在")
     if os.path.exists(report_path):
         content = open(report_path, 'r').read()
         print(content)
