@@ -255,6 +255,13 @@ def create_abstract_report(request):
     if response.status_code != 200:
         return fail(msg="连接模型服务器失败")
     tmp_kb_id = response.json()['data']['id']
+    threading.Thread(target=gen_abstract, args=(tmp_kb_id, report_path, ar)).start()
+
+    return fail(msg="正在生成中，请稍后查看")
+    
+from business.models.abstract_report import AbstractReport
+    
+def gen_abstract(tmp_kb_id, report_path, ar : AbstractReport):
     summary = ""
     # 开始生成摘要
     ## 现状，解决问题，解决方法，实验结果，结论
@@ -333,5 +340,3 @@ def create_abstract_report(request):
         f.write(response)
     ar.report_path = report_path
     ar.save()
-    return success({'summary': response}, msg="生成摘要成功")
-    
