@@ -174,6 +174,7 @@ def judge_comment_report(request):
     # 讲审核意见填入举报表，同时发送信息给举报用户
     report = CommentReport.objects.filter(id=report_id).first()
     report.judgment = judgment
+    report.processed = True
     report.save()
     Notification(user_id=report.user_id, title="您的举报已被审核", content=judgment).save()
 
@@ -194,6 +195,7 @@ def delete_comment(request):
                      ).save()
         report.comment_id_1.visibility = False
         report.comment_id_1.save()
+        report.processed = True
         report.save()
 
     elif level == 2:
@@ -202,6 +204,7 @@ def delete_comment(request):
                      ).save()
         report.comment_id_2.visibility = False
         report.comment_id_2.save()
+        report.processed = True
         report.save()
 
     return reply.success(msg="评论已删除")
