@@ -11,6 +11,7 @@ from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 
 import json
 import datetime
+from collections import defaultdict
 from business.models import User, Paper, Admin, CommentReport, Notification, UserDocument, UserDailyAddition, Subclass
 from business.utils import reply
 
@@ -37,7 +38,7 @@ def get_last_5_years():
         current_date = current_date.replace(month=1, day=1)
         years.append(current_date)
         current_date -= datetime.timedelta(days=current_date.day)
-
+    print(years)
     return years[::-1]
 
 
@@ -230,7 +231,7 @@ def paper_outline(request):
         return reply.success(data={
             'paper_id': paper.paper_id,
             'title': paper.title,
-            'authors': paper.authors,
+            'authors': paper.authors.split(','),
             'abstract': paper.abstract,
             'publication_date': paper.publication_date.strftime("%Y-%m-%d"),
             'journal': paper.journal,
@@ -327,8 +328,35 @@ def paper_statistic(request):
 
     elif mode == 3:
         # 论文类别统计
-        papers = Paper.objects.all()
+        years = get_last_5_years()
+        subclasses = set()
+        years_data = {year.strftime('%Y'): defaultdict(int) for year in years}
 
-        pass
+        # 获取所有年份的论文数据
+        papers = Paper.objects.filter(publication_date__year__in=[year.year for year in years])
+        subclass_counts = papers.values('sub_classes__name', 'publication_date__year').annotate(
+            count=Count('sub_classes__name'))
+
+        # 存储在字典中
+        for rec in subclass_counts:
+            subclass_name = rec['sub_classes__name']
+            year = str(rec['publication_date__year'])
+            count = rec['count']
+            subclasses.add(subclass_name)
+            years_data[year][subclass_name] = count
+
+        # 初始化响应数据
+        data = {
+            'years': ['subclass'] + [year.strftime('%Y') for year in years],
+            'data': []
+        }
+        # 填充数据
+        for subclass in subclasses:
+            row = [subclass]
+            for year in years:
+                row.append(years_data[year.strftime('%Y')].get(subclass, 0))
+            data['data'].append(row)
+        return reply.success(data=data, msg="领域统计数据获取成功")
+    
     else:
         return reply.fail(msg="mode参数错误")
