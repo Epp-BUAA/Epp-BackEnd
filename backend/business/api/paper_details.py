@@ -189,6 +189,8 @@ def get_first_comment(request):
         comments = FirstLevelComment.objects.filter(paper_id=paper_id)
         data = []
         for comment in comments:
+            if comment.visibility is False:
+                continue
             second_len = SecondLevelComment.objects.filter(level1_comment_id=comment.comment_id).count()
             data.append({
                 'comment_id': comment.comment_id,
@@ -219,6 +221,12 @@ def get_second_comment(request):
         comments = SecondLevelComment.objects.filter(level1_comment_id=level1_comment_id)
         data = []
         for comment in comments:
+            if comment.level1_comment.visibility is False:
+                continue
+            if comment.reply_comment and comment.reply_comment.visibility is False:
+                continue
+            if comment.visibility is False:
+                continue
             data.append({
                 'comment_id': comment.comment_id,
                 'date': comment.date.strftime("%Y-%m-%d %H:%M:%S"),
