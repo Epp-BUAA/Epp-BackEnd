@@ -17,6 +17,7 @@ class CommentReport(models.Model):
         - date               举报时间
         - content            举报内容
         - judgment           处理意见
+        - processed          举报完成情况
     """
     comment_id_1 = models.ForeignKey(FirstLevelComment, on_delete=models.CASCADE, null=True, blank=True)
     comment_id_2 = models.ForeignKey(SecondLevelComment, on_delete=models.CASCADE, null=True, blank=True)
@@ -25,3 +26,4 @@ class CommentReport(models.Model):
     date = models.DateTimeField(auto_now_add=True)
     content = models.TextField(null=True, blank=True)
     judgment = models.TextField(null=True, blank=True)
+    processed = models.BooleanField(default=False)

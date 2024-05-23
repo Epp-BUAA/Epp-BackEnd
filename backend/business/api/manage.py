@@ -132,10 +132,10 @@ def comment_report_list(request):
     mode = int(request.GET.get('mode'))
     if mode == 1:
         # 获取未处理的举报信息
-        reports = CommentReport.objects.filter(judgment__isnull=True).order_by('-date')
+        reports = CommentReport.objects.filter(processed=False).order_by('-date')
     elif mode == 2:
         # 获取已处理的举报信息
-        reports = CommentReport.objects.filter(judgment__isnull=False).order_by('-date')
+        reports = CommentReport.objects.filter(processed=False).order_by('-date')
     else:
         return reply.fail(msg="mode参数有误")
 
@@ -192,12 +192,17 @@ def delete_comment(request):
         Notification(user_id=report.comment_id_1.user_id, title="您的评论被举报了！",
                      content=f"您在 {report.comment_id_1.date.strftime('%Y-%m-%d %H:%M:%S')} 对论文《{report.comment_id_1.paper_id.title}》的评论内容 \"{report.comment_id_1.text}\" 被其他用户举报，根据EPP平台管理规定，检测到您的评论确为不合规，该评论现已删除。\n请注意遵守平台评论规范，理性发言！"
                      ).save()
-        report.comment_id_1.delete()
+        report.comment_id_1.visibility = False
+        report.comment_id_1.save()
+        report.save()
+
     elif level == 2:
         Notification(user_id=report.comment_id_2.user_id, title="您的评论被举报了！",
                      content=f"您在 {report.comment_id_2.date.strftime('%Y-%m-%d %H:%M:%S')} 对论文《{report.comment_id_2.paper_id.title}》的评论内容 \"{report.comment_id_2.text}\" 被其他用户举报，根据EPP平台管理规定，检测到您的评论确为不合规，该评论现已删除。\n请注意遵守平台评论规范，理性发言！"
                      ).save()
-        report.comment_id_2.delete()
+        report.comment_id_2.visibility = False
+        report.comment_id_2.save()
+        report.save()
 
     return reply.success(msg="评论已删除")
 
