@@ -198,45 +198,80 @@ def judge_comment_report(request):
     """ 举报审核意见 """
     # todo 管理员鉴权
     params: dict = json.loads(request.body)
-    report_id = params.get('id')
-    judgment = params.get('judgment')
-    # 讲审核意见填入举报表，同时发送信息给举报用户
+    report_id = params.get('report_id')
+    text = params.get('text')
+    visibility = params.get('visibility')
+
+    # 获取对应举报和评论
     report = CommentReport.objects.filter(id=report_id).first()
-    report.judgment = judgment
+    if not report:
+        return reply.fail(msg="举报信息不存在")
+    level = report.comment_level
+    comment = report.comment_id_1 if level == 1 else report.comment_id_2
+
+    # 校对审核信息
+    if text == report.judgment and visibility == comment.visibility:
+        return reply.fail(msg="请输入有效的审核信息")
+
+    # 保存审核信息
+    if comment.visibility != visibility:
+        comment.visibility = visibility
+        if not visibility:
+            # 被屏蔽
+            Notification(user_id=comment.user_id, title="您的评论被举报了！",
+                         content=f"您在 {comment.date.strftime('%Y-%m-%d %H:%M:%S')} 对论文《{comment.paper_id.title}》的评论内容 \"{comment.text}\" 被其他用户举报，根据EPP平台管理规定，检测到您的评论确为不合规，该评论现已删除。\n请注意遵守平台评论规范，理性发言！"
+                         ).save()
+        else:
+            # 取消屏蔽
+            Notification(user_id=comment.user_id, title="您的评论已恢复正常！",
+                         content=f"您在 {comment.date.strftime('%Y-%m-%d %H:%M:%S')} 对论文《{comment.paper_id.title}》的评论内容 \"{comment.text}\" 被平台重新审核后判定合规，因此已恢复正常。\n对您带来的不便，我们表示万分抱歉！"
+                         ).save()
+
+    comment.save()
+
+    if report.judgment != text:
+        report.judgment = text
+        if report.processed:
+            # 重新审核
+            Notification(user_id=report.user_id, title="您的举报已被重新审核",
+                         content=f"您在 {report.date.strftime('%Y-%m-%d %H:%M:%S')} 对论文《{comment.paper_id.title}》的评论内容 \"{comment.text}\" 的举报已被平台重新审核。\n以下是新的审核意见：{text}").save()
+        else:
+            # 首次审核
+            Notification(user_id=report.user_id, title="您的举报已被审核",
+                         content=f"您在 {report.date.strftime('%Y-%m-%d %H:%M:%S')} 对论文《{comment.paper_id.title}》的评论内容 \"{comment.text}\" 的举报已被平台审核。\n以下是审核意见：{text}").save()
+
     report.processed = True
     report.save()
-    Notification(user_id=report.user_id, title="您的举报已被审核", content=judgment).save()
-
     return reply.success(msg="举报已审核")
 
 
-@require_http_methods('DELETE')
-def delete_comment(request):
-    """ 删除评论 """
-    params: dict = json.loads(request.body)
-    report_id = params.get('id')
-    report = CommentReport.objects.filter(id=report_id).first()
-    # 删除评论并通知用户
-    level = report.comment_level
-    if level == 1:
-        Notification(user_id=report.comment_id_1.user_id, title="您的评论被举报了！",
-                     content=f"您在 {report.comment_id_1.date.strftime('%Y-%m-%d %H:%M:%S')} 对论文《{report.comment_id_1.paper_id.title}》的评论内容 \"{report.comment_id_1.text}\" 被其他用户举报，根据EPP平台管理规定，检测到您的评论确为不合规，该评论现已删除。\n请注意遵守平台评论规范，理性发言！"
-                     ).save()
-        report.comment_id_1.visibility = False
-        report.comment_id_1.save()
-        report.processed = True
-        report.save()
-
-    elif level == 2:
-        Notification(user_id=report.comment_id_2.user_id, title="您的评论被举报了！",
-                     content=f"您在 {report.comment_id_2.date.strftime('%Y-%m-%d %H:%M:%S')} 对论文《{report.comment_id_2.paper_id.title}》的评论内容 \"{report.comment_id_2.text}\" 被其他用户举报，根据EPP平台管理规定，检测到您的评论确为不合规，该评论现已删除。\n请注意遵守平台评论规范，理性发言！"
-                     ).save()
-        report.comment_id_2.visibility = False
-        report.comment_id_2.save()
-        report.processed = True
-        report.save()
-
-    return reply.success(msg="评论已删除")
+# @require_http_methods('DELETE')
+# def delete_comment(request):
+#     """ 删除评论 """
+#     params: dict = json.loads(request.body)
+#     report_id = params.get('id')
+#     report = CommentReport.objects.filter(id=report_id).first()
+#     # 删除评论并通知用户
+#     level = report.comment_level
+#     if level == 1:
+#         Notification(user_id=report.comment_id_1.user_id, title="您的评论被举报了！",
+#                      content=f"您在 {report.comment_id_1.date.strftime('%Y-%m-%d %H:%M:%S')} 对论文《{report.comment_id_1.paper_id.title}》的评论内容 \"{report.comment_id_1.text}\" 被其他用户举报，根据EPP平台管理规定，检测到您的评论确为不合规，该评论现已删除。\n请注意遵守平台评论规范，理性发言！"
+#                      ).save()
+#         report.comment_id_1.visibility = False
+#         report.comment_id_1.save()
+#         report.processed = True
+#         report.save()
+#
+#     elif level == 2:
+#         Notification(user_id=report.comment_id_2.user_id, title="您的评论被举报了！",
+#                      content=f"您在 {report.comment_id_2.date.strftime('%Y-%m-%d %H:%M:%S')} 对论文《{report.comment_id_2.paper_id.title}》的评论内容 \"{report.comment_id_2.text}\" 被其他用户举报，根据EPP平台管理规定，检测到您的评论确为不合规，该评论现已删除。\n请注意遵守平台评论规范，理性发言！"
+#                      ).save()
+#         report.comment_id_2.visibility = False
+#         report.comment_id_2.save()
+#         report.processed = True
+#         report.save()
+#
+#     return reply.success(msg="评论已删除")
 
 
 @require_http_methods('GET')
