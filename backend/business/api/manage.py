@@ -164,6 +164,35 @@ def comment_report_list(request):
     return reply.success(data=data, msg="举报信息获取成功")
 
 
+@require_http_methods('GET')
+def comment_report_detail(request):
+    """ 举报信息详情 """
+    report_id = request.GET.get('report_id')
+    report = CommentReport.objects.filter(id=report_id).first()
+    if report:
+        data = {
+            'id': report.id,
+            'comment': {
+                "comment_id": report.comment_id_1.comment_id if report.comment_id_1 else report.comment_id_2.comment_id,
+                "user": report.comment_id_1.user_id.simply_desc() if report.comment_id_1 else report.comment_id_2.user_id.simply_desc(),
+                "paper": report.comment_id_1.paper_id.simply_desc() if report.comment_id_1 else report.comment_id_2.paper_id.simply_desc(),
+                "date": report.comment_id_1.date.strftime(
+                    "%Y-%m-%d %H:%M:%S") if report.comment_id_1 else report.comment_id_2.date.strftime(
+                    "%Y-%m-%d %H:%M:%S"),
+                "content": report.comment_id_1.text if report.comment_id_1 else report.comment_id_2.text
+            },
+            'user': report.user_id.simply_desc(),
+            'comment_level': report.comment_level,
+            'date': report.date.strftime("%Y-%m-%d %H:%M:%S"),
+            'content': report.content,
+            'judgment': report.judgment,
+            'processed': report.processed,
+        }
+        return reply.success(data=data, msg="举报详情信息获取成功")
+    else:
+        return reply.fail(msg="举报信息不存在")
+
+
 @require_http_methods('POST')
 def judge_comment_report(request):
     """ 举报审核意见 """
@@ -365,6 +394,6 @@ def paper_statistic(request):
                 row.append(years_data[year.strftime('%Y')].get(subclass, 0))
             data['data'].append(row)
         return reply.success(data=data, msg="领域统计数据获取成功")
-    
+
     else:
         return reply.fail(msg="mode参数错误")
