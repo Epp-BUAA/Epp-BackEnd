@@ -164,7 +164,6 @@ def comment_report_list(request):
                 "content": report.comment_id_1.text if report.comment_id_1 else report.comment_id_2.text
             },
             'user': report.user_id.simply_desc(),
-            'comment_level': report.comment_level,
             'date': report.date.strftime("%Y-%m-%d %H:%M:%S"),
             'content': report.content
         }
