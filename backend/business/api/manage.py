@@ -130,23 +130,34 @@ def paper_list(request):
 def comment_report_list(request):
     """ 举报列表 """
     mode = int(request.GET.get('mode'))
+    date = request.GET.get('date', default=None)  # 搜索日期
+    page_num = int(request.GET.get('page_num', default=1))  # 页码
+    page_size = int(request.GET.get('page_size', default=15))  # 每页条目数
     if mode == 1:
         # 获取未处理的举报信息
-        reports = CommentReport.objects.filter(processed=False).order_by('-date')
+        reports = CommentReport.objects.filter(processed=False, date__date=date).order_by('-date') if date else \
+            CommentReport.objects.filter(processed=False).order_by('-date')
     elif mode == 2:
         # 获取已处理的举报信息
-        reports = CommentReport.objects.filter(processed=False).order_by('-date')
+        reports = CommentReport.objects.filter(processed=True, date__date=date).order_by('-date') if date else \
+            CommentReport.objects.filter(processed=True).order_by('-date')
     else:
         return reply.fail(msg="mode参数有误")
 
+    paginator = Paginator(reports, page_size)
+    try:
+        contacts = paginator.page(page_num)
+    except PageNotAnInteger:
+        contacts = paginator.page(1)
+    except EmptyPage:
+        contacts = paginator.page(paginator.num_pages)
+
+    # 填写结果
     data = {"total": len(reports), "reports": []}
-    for report in reports:
+    for report in contacts:
         obj = {
             'id': report.id,
             'comment': {
-                "comment_id": report.comment_id_1.comment_id if report.comment_id_1 else report.comment_id_2.comment_id,
-                "user": report.comment_id_1.user_id.simply_desc() if report.comment_id_1 else report.comment_id_2.user_id.simply_desc(),
-                "paper": report.comment_id_1.paper_id.simply_desc() if report.comment_id_1 else report.comment_id_2.paper_id.simply_desc(),
                 "date": report.comment_id_1.date.strftime(
                     "%Y-%m-%d %H:%M:%S") if report.comment_id_1 else report.comment_id_2.date.strftime(
                     "%Y-%m-%d %H:%M:%S"),
@@ -157,8 +168,6 @@ def comment_report_list(request):
             'date': report.date.strftime("%Y-%m-%d %H:%M:%S"),
             'content': report.content
         }
-        if report.judgment:
-            obj['judgement'] = report.judgment
         data['reports'].append(obj)
 
     return reply.success(data=data, msg="举报信息获取成功")
@@ -226,7 +235,6 @@ def judge_comment_report(request):
             Notification(user_id=comment.user_id, title="您的评论已恢复正常！",
                          content=f"您在 {comment.date.strftime('%Y-%m-%d %H:%M:%S')} 对论文《{comment.paper_id.title}》的评论内容 \"{comment.text}\" 被平台重新审核后判定合规，因此已恢复正常。\n对您带来的不便，我们表示万分抱歉！"
                          ).save()
-
     comment.save()
 
     if report.judgment != text:
