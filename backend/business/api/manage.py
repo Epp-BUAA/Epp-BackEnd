@@ -187,7 +187,8 @@ def comment_report_detail(request):
                 "date": report.comment_id_1.date.strftime(
                     "%Y-%m-%d %H:%M:%S") if report.comment_id_1 else report.comment_id_2.date.strftime(
                     "%Y-%m-%d %H:%M:%S"),
-                "content": report.comment_id_1.text if report.comment_id_1 else report.comment_id_2.text
+                "content": report.comment_id_1.text if report.comment_id_1 else report.comment_id_2.text,
+                "visibility": report.comment_id_1.visibility if report.comment_id_1 else report.comment_id_2.visibility
             },
             'user': report.user_id.simply_desc(),
             'comment_level': report.comment_level,
