@@ -125,4 +125,5 @@ urlpatterns = [
                   
                   # 热门文献推荐
                   path("api/paperRecommend", get_recommendation),
+                  path("api/refresh", get_recommendation)
               ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
