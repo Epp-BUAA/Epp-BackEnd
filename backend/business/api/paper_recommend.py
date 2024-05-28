@@ -14,6 +14,8 @@
 from django_cron import CronJobBase, Schedule
 from django.utils import timezone
 from business.utils import reply
+from business.models import Paper
+import random
 
 # class refreshRecomendation(CronJobBase):
 #     RUN_AT_TIMES = ['00:00']
@@ -26,17 +28,27 @@ from business.utils import reply
 #         pass
     
 
+from django.core.cache import cache
+
 def get_recommendation(request):
-    # 从arXiv上爬取最近一周的cv的每天10篇论文
-    # 然后通过总结这些论文的关键词，来进行推荐
-    from business.models import Paper
-    
-    l = Paper.objects.all()
-    import random
-    
-    # 随机五个
-    papers = []
-    for i in range(5):
-        papers.append(random.choice(l).__dict__)
-        
-    return reply.success({ 'papers': papers })
+    # 尝试从缓存中获取推荐数据
+    cached_papers = cache.get('recommended_papers')
+    if cached_papers:
+        return reply.success(data={'papers': cached_papers}, msg='success')
+
+    # 从数据库中获取所有 Paper 对象的 ID
+    papers_ids = Paper.objects.values_list('id', flat=True)
+
+    # 随机选择五篇论文的 ID
+    selected_paper_ids = random.sample(papers_ids, min(5, len(papers_ids)))
+
+    # 获取选中论文的详细信息
+    selected_papers = Paper.objects.filter(id__in=selected_paper_ids)
+
+    # 将选中的论文对象转换为字典
+    papers = [paper.to_dict() for paper in selected_papers]
+
+    # 将推荐数据缓存一天
+    cache.set('recommended_papers', papers, timeout=86400)
+
+    return reply.success(data={'papers': papers}, msg='success')
