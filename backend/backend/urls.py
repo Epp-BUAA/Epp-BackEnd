@@ -32,6 +32,8 @@ from business.api.search import get_user_search_history, vector_query, dialog_qu
 from business.utils.paper_vdb_init import local_vdb_init, easy_vector_query
 from business.api.summary import generate_summary, create_abstract_report, get_summary_status
 
+from business.api.paper_recommend import get_recommendation
+
 urlpatterns = [
                   path("admin/", admin.site.urls),
 
@@ -120,4 +122,7 @@ urlpatterns = [
                   path("api/summary/generateSummaryReport", generate_summary),
                   path("api/summary/generateAbstractReport", create_abstract_report),
                   path("api/summary/getSummaryStatus", get_summary_status),
+                  
+                  # 热门文献推荐
+                  path("api/paperRecommend", get_recommendation),
               ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
