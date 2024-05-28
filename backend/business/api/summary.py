@@ -239,6 +239,7 @@ def create_abstract_report(request):
     if ar is None:
         # 创建一个线程，直接开始创建
         ## 先创建一个知识库
+        ar = AbstractReport.objects.create(file_local_path=local_path, report_path=report_path)
         upload_temp_docs_url = f'http://{settings.REMOTE_MODEL_BASE_PATH}/knowledge_base/upload_temp_docs'
         local_path = local_path[1:] if local_path.startswith('/') else local_path
         print(local_path)
@@ -285,12 +286,11 @@ class abs_control_thread(threading.Thread):
         a.start()
         while cur < self.ttl:
             ar = AbstractReport.objects.get(file_local_path=self.local_path)
-            if ar.report_path != "":
-                return
+            if ar.status == AbstractReport.STATUS_COMPLETED:
+                break
             cur += 1
             time.sleep(1)
-        
-        # 超时
+        a.stop()
         
 class abs_gen_thread(threading.Thread):
     def __init__(self, tmp_kb_id, report_path, local_path):
@@ -310,8 +310,6 @@ class abs_gen_thread(threading.Thread):
         self._stop.set()
     
 def gen_abstract(tmp_kb_id, report_path, local_path):
-    if AbstractReport.objects.filter(file_local_path=local_path).count() == 0:
-        ar = AbstractReport.objects.create(file_local_path=local_path, report_path=report_path)
     ar = AbstractReport.objects.get(file_local_path=local_path)
     ar.status = AbstractReport.STATUS_IN_PROGRESS
     summary = ""
