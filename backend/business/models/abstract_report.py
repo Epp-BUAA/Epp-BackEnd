@@ -15,10 +15,12 @@ class AbstractReport(models.Model):
     STATUS_PENDING = 'P'
     STATUS_IN_PROGRESS = 'IP'
     STATUS_COMPLETED = 'C'
+    STATUS_TIMEOUT = 'T'
     STATUS_CHOICES = [
         (STATUS_PENDING, '未生成'),
         (STATUS_IN_PROGRESS, '生成中'),
         (STATUS_COMPLETED, '已生成'),
+        (STATUS_TIMEOUT, '超时')
     ]
     
     file_local_path = models.CharField(max_length=255, primary_key=True)

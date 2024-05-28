@@ -257,14 +257,16 @@ def create_abstract_report(request):
         tmp_kb_id = response.json()['data']['id']
         print(tmp_kb_id, report_path, local_path)
         abs_control_thread(tmp_kb_id=tmp_kb_id, report_path=report_path, local_path=local_path).start()
-        return fail(msg="正在生成中，请稍后查看")
-    elif ar is not None and ar.status == AbstractReport.STATUS_PENDING:
+        return success(msg="正在生成中，请稍后查看")
+    elif ar is not None and ar.status == AbstractReport.STATUS_PENDING or ar.status == AbstractReport.STATUS_IN_PROGRESS:
         # 存在
-        return fail(msg="正在生成中，请稍后查看")
-    elif ar is not None and ar.status == AbstractReport.STATUS_COMPLETED and os.path.exists(ar.report_path):
+        return success(msg="正在生成中，请稍后查看")
+    elif ar is not None and ar.status == AbstractReport.STATUS_COMPLETED:
         # 存在
         return success({'summary': open(ar.report_path, 'r').read()}, msg="生成摘要成功")
     else:
+        assert ar.status == AbstractReport.STATUS_TIMEOUT
+        ar.delete()
         return fail(msg="生成摘要失败")
     
 from business.models.abstract_report import AbstractReport
@@ -287,7 +289,7 @@ class abs_control_thread(threading.Thread):
         while cur < self.ttl:
             ar = AbstractReport.objects.get(file_local_path=self.local_path)
             if ar.status == AbstractReport.STATUS_COMPLETED:
-                break
+                return
             cur += 1
             time.sleep(1)
         a.stop()
@@ -298,96 +300,105 @@ class abs_gen_thread(threading.Thread):
         self.tmp_kb_id = tmp_kb_id
         self.report_path = report_path
         self.local_path = local_path
+        self.isend = False
         self.setDaemon(True)
     
     def run(self):
-        gen_abstract(self.tmp_kb_id, self.report_path, self.local_path)
+        ar = AbstractReport.objects.get(file_local_path=self.local_path)
+        ar.status = AbstractReport.STATUS_IN_PROGRESS
+        summary = ""
+        # 开始生成摘要
+        ## 现状，解决问题，解决方法，实验结果，结论
+        summary += '# 摘要报告\n'
+        
+        from business.api.paper_interpret import do_file_chat
+        
+        #### 研究现状
+        if self.isend:
+            ar.status = AbstractReport.STATUS_TIMEOUT
+            return
+        
+        query_current_situation = '请讲述研究现状部分\n'
+        payload_cur_situation = json.dumps({
+            "query": query_current_situation,
+            "knowledge_id": self.tmp_kb_id,
+            "prompt_name": "default"  # 使用普通对话模式
+        })
+        response_current_situation,_ = ask_ai_single_paper(payload=payload_cur_situation)
+        print(_)
+        summary += '## 研究现状\n' + response_current_situation + '\n'
+        if self.isend:
+            ar.status = AbstractReport.STATUS_TIMEOUT
+            return
+        
+        #### 解决问题
+        
+        query_problem = '请讲讲这篇论文解决的问题\n'
+        payload_problem = json.dumps({
+            "query": query_problem,
+            "knowledge_id": self.tmp_kb_id,
+            "prompt_name": "default"
+        })
+        response_problem,_ = ask_ai_single_paper(payload=payload_problem)
+        print(_)
+        summary += '## 解决问题\n' + response_problem + '\n'
+        if self.isend:
+            ar.status = AbstractReport.STATUS_TIMEOUT
+            return
+        #### 解决方法
+        
+        query_solution = '请讲讲这篇论文提出的解决方法\n'
+        payload_solution = json.dumps({
+            "query": query_problem,
+            "knowledge_id": self.tmp_kb_id,
+            "prompt_name": "default"  # 使用普通对话模式
+        })
+        response_solution,_ = ask_ai_single_paper(payload=payload_solution)
+        print(_)
+        summary += '## 解决方法\n' + response_solution + '\n'
+        if self.isend:
+            ar.status = AbstractReport.STATUS_TIMEOUT
+            return 
+        #### 实验结果
+        
+        query_result = '请讲讲这篇论文实验得到的结果\n'
+        payload_res = json.dumps({
+            "query": query_result,
+            "knowledge_id": self.tmp_kb_id,
+            "prompt_name": "default"  # 使用普通对话模式
+        })
+        response_result,_ = ask_ai_single_paper(payload=payload_res)
+        print(_)
+        summary += '## 实验结果\n' + response_result + '\n'
+        if self.isend:
+            ar.status = AbstractReport.STATUS_TIMEOUT
+            return
+        #### 结论
+        
+        query_conclusion = '请讲讲这篇论文得出的结论\n'
+        payload_conclusion = json.dumps({
+            "query": query_conclusion,
+            "knowledge_id": self.tmp_kb_id,
+            "prompt_name": "default"  # 使用普通对话模式
+        })
+        response_conclusion,_ = ask_ai_single_paper(payload=payload_conclusion)
+        print(_)
+        summary += '## 结论\n' + response_conclusion + '\n'
+        
+        
+        # 修改语病，更加通顺
+        print(summary)
+        
+        prompt = '这是一篇摘要，请让他更加通顺，结果使用简体中文：\n' + summary
+        response = queryGLM(prompt, [])
+        print(response)
+        with open(self.report_path, 'w', encoding='utf-8') as f:
+            f.write(response)
+        ar.report_path = self.report_path
+        ar.status = AbstractReport.STATUS_COMPLETED
+        ar.save()
         
     def stop(self):
         # 设置线程停止
-        ar = AbstractReport.objects.get(file_local_path=self.local_path)
-        ar.status = AbstractReport.STATUS_PENDING
-        self._stop.set()
+        self.isend = True
     
-def gen_abstract(tmp_kb_id, report_path, local_path):
-    ar = AbstractReport.objects.get(file_local_path=local_path)
-    ar.status = AbstractReport.STATUS_IN_PROGRESS
-    summary = ""
-    # 开始生成摘要
-    ## 现状，解决问题，解决方法，实验结果，结论
-    summary += '# 摘要报告\n'
-    
-    from business.api.paper_interpret import do_file_chat
-    
-    #### 研究现状
-    
-    query_current_situation = '请讲述研究现状部分\n'
-    payload_cur_situation = json.dumps({
-        "query": query_current_situation,
-        "knowledge_id": tmp_kb_id,
-        "prompt_name": "default"  # 使用普通对话模式
-    })
-    response_current_situation,_ = ask_ai_single_paper(payload=payload_cur_situation)
-    print(_)
-    summary += '## 研究现状\n' + response_current_situation + '\n'
-    
-    #### 解决问题
-    
-    query_problem = '请讲讲这篇论文解决的问题\n'
-    payload_problem = json.dumps({
-        "query": query_problem,
-        "knowledge_id": tmp_kb_id,
-        "prompt_name": "default"
-    })
-    response_problem,_ = ask_ai_single_paper(payload=payload_problem)
-    print(_)
-    summary += '## 解决问题\n' + response_problem + '\n'
-    
-    #### 解决方法
-    
-    query_solution = '请讲讲这篇论文提出的解决方法\n'
-    payload_solution = json.dumps({
-        "query": query_problem,
-        "knowledge_id": tmp_kb_id,
-        "prompt_name": "default"  # 使用普通对话模式
-    })
-    response_solution,_ = ask_ai_single_paper(payload=payload_solution)
-    print(_)
-    summary += '## 解决方法\n' + response_solution + '\n'
-    
-    #### 实验结果
-    
-    query_result = '请讲讲这篇论文实验得到的结果\n'
-    payload_res = json.dumps({
-        "query": query_result,
-        "knowledge_id": tmp_kb_id,
-        "prompt_name": "default"  # 使用普通对话模式
-    })
-    response_result,_ = ask_ai_single_paper(payload=payload_res)
-    print(_)
-    summary += '## 实验结果\n' + response_result + '\n'
-    
-    #### 结论
-    
-    query_conclusion = '请讲讲这篇论文得出的结论\n'
-    payload_conclusion = json.dumps({
-        "query": query_conclusion,
-        "knowledge_id": tmp_kb_id,
-        "prompt_name": "default"  # 使用普通对话模式
-    })
-    response_conclusion,_ = ask_ai_single_paper(payload=payload_conclusion)
-    print(_)
-    summary += '## 结论\n' + response_conclusion + '\n'
-    
-    
-    # 修改语病，更加通顺
-    print(summary)
-    
-    prompt = '这是一篇摘要，请让他更加通顺，结果使用简体中文：\n' + summary
-    response = queryGLM(prompt, [])
-    print(response)
-    with open(report_path, 'w', encoding='utf-8') as f:
-        f.write(response)
-    ar.report_path = report_path
-    ar.status = AbstractReport.STATUS_COMPLETED
-    ar.save()
