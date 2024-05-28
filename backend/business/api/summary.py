@@ -202,7 +202,6 @@ def create_abstract_report(request):
     document_id = request_data.get("document_id")
     paper_id = request_data.get("paper_id")
     username = request.session.get('username')
-    print(paper_id)
     if username is None:
         username = 'sanyuba'
     print(username)
@@ -231,49 +230,90 @@ def create_abstract_report(request):
     from business.models.abstract_report import AbstractReport
     report_path = os.path.join(settings.USER_REPORTS_PATH, str(title) + '.md')
     print(report_path)
-    pdf_path = os.path.join(settings.USER_REPORTS_PATH, str(title) + '.pdf')
+    
+    # 先查询存不存在响应的解读
+    
     ar = AbstractReport.objects.filter(file_local_path=local_path).first()
-    if ar is not None and not os.path.exists(ar.report_path):
-        return fail(msg="文件不存在")
-    if os.path.exists(report_path):
-        content = open(report_path, 'r').read()
-        print(content)
-        return success({'summary': content}, msg="生成摘要成功")
+    
+    # 不存在
     if ar is None:
-        ar = AbstractReport.objects.create(file_local_path=local_path, report_path=report_path)
-        ar.save()
-    ### 将所有windows目录改为linux格式
-    local_path = local_path.replace('\\', '/')
-    report_path = report_path.replace('\\', '/')
-    ar.file_local_path = local_path
-    ar.report_path = report_path
-    ar.save()
-    # 上传到远端服务器, 创建新的临时知识库
-    upload_temp_docs_url = f'http://{settings.REMOTE_MODEL_BASE_PATH}/knowledge_base/upload_temp_docs'
-    payload = {}
-    local_path = local_path[1:] if local_path.startswith('/') else local_path
-    print(local_path)
-    files = [
-        ('files', (str(title) + content_type, open(local_path, 'rb'),
-                   'application/vnd.openxmlformats-officedocument.presentationml.presentation'))
-    ]
-    response = requests.post(upload_temp_docs_url, files=files)
+        # 创建一个线程，直接开始创建
+        ## 先创建一个知识库
+        upload_temp_docs_url = f'http://{settings.REMOTE_MODEL_BASE_PATH}/knowledge_base/upload_temp_docs'
+        local_path = local_path[1:] if local_path.startswith('/') else local_path
+        print(local_path)
+        files = [
+            ('files', (str(title) + content_type, open(local_path, 'rb'),
+                    'application/vnd.openxmlformats-officedocument.presentationml.presentation'))
+        ]
+        response = requests.post(upload_temp_docs_url, files=files)
 
-    # 关闭文件，防止内存泄露
-    for k, v in files:
-        v[1].close()
-    if response.status_code != 200:
-        return fail(msg="连接模型服务器失败")
-    tmp_kb_id = response.json()['data']['id']
-    print(tmp_kb_id, report_path, local_path)
-    threading.Thread(target=gen_abstract, args=(tmp_kb_id, report_path, local_path)).start()
-
-    return fail(msg="正在生成中，请稍后查看")
+        # 关闭文件，防止内存泄露
+        for k, v in files:
+            v[1].close()
+        if response.status_code != 200:
+            return fail(msg="连接模型服务器失败")
+        tmp_kb_id = response.json()['data']['id']
+        print(tmp_kb_id, report_path, local_path)
+        abs_control_thread(tmp_kb_id=tmp_kb_id, report_path=report_path, local_path=local_path).start()
+        return fail(msg="正在生成中，请稍后查看")
+    elif ar is not None and ar.status == AbstractReport.STATUS_PENDING:
+        # 存在
+        return fail(msg="正在生成中，请稍后查看")
+    elif ar is not None and ar.status == AbstractReport.STATUS_COMPLETED and os.path.exists(ar.report_path):
+        # 存在
+        return success({'summary': open(ar.report_path, 'r').read()}, msg="生成摘要成功")
+    else:
+        return fail(msg="生成摘要失败")
     
 from business.models.abstract_report import AbstractReport
+
+class abs_control_thread(threading.Thread):
+    def __init__(self, tmp_kb_id, report_path, local_path):
+        threading.Thread.__init__(self)
+        self.tmp_kb_id = tmp_kb_id
+        self.report_path = report_path
+        self.local_path = local_path
+        self.ttl = 300 # 5分钟
+        self.setDaemon(True)
+    
+    def run(self):
+        import time
+        cur = 0
+        # 执行gen_abstract的时间不能超过ttl
+        a = abs_gen_thread(self.tmp_kb_id, self.report_path, self.local_path)
+        a.start()
+        while cur < self.ttl:
+            ar = AbstractReport.objects.get(file_local_path=self.local_path)
+            if ar.report_path != "":
+                return
+            cur += 1
+            time.sleep(1)
+        
+        # 超时
+        
+class abs_gen_thread(threading.Thread):
+    def __init__(self, tmp_kb_id, report_path, local_path):
+        threading.Thread.__init__(self)
+        self.tmp_kb_id = tmp_kb_id
+        self.report_path = report_path
+        self.local_path = local_path
+        self.setDaemon(True)
+    
+    def run(self):
+        gen_abstract(self.tmp_kb_id, self.report_path, self.local_path)
+        
+    def stop(self):
+        # 设置线程停止
+        ar = AbstractReport.objects.get(file_local_path=self.local_path)
+        ar.status = AbstractReport.STATUS_PENDING
+        self._stop.set()
     
 def gen_abstract(tmp_kb_id, report_path, local_path):
+    if AbstractReport.objects.filter(file_local_path=local_path).count() == 0:
+        ar = AbstractReport.objects.create(file_local_path=local_path, report_path=report_path)
     ar = AbstractReport.objects.get(file_local_path=local_path)
+    ar.status = AbstractReport.STATUS_IN_PROGRESS
     summary = ""
     # 开始生成摘要
     ## 现状，解决问题，解决方法，实验结果，结论
@@ -351,4 +391,5 @@ def gen_abstract(tmp_kb_id, report_path, local_path):
     with open(report_path, 'w', encoding='utf-8') as f:
         f.write(response)
     ar.report_path = report_path
+    ar.status = AbstractReport.STATUS_COMPLETED
     ar.save()
