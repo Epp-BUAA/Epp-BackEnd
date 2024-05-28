@@ -35,19 +35,17 @@ def get_recommendation(request):
     cached_papers = cache.get('recommended_papers')
     if cached_papers:
         return reply.success(data={'papers': cached_papers}, msg='success')
-
     # 从数据库中获取所有 Paper 对象的 ID
-    papers_ids = Paper.objects.values_list('id', flat=True)
-
+    papers_ids = Paper.objects.values_list('paper_id', flat=True)
     # 随机选择五篇论文的 ID
     selected_paper_ids = random.sample(papers_ids, min(5, len(papers_ids)))
-
     # 获取选中论文的详细信息
-    selected_papers = Paper.objects.filter(id__in=selected_paper_ids)
-
+    selected_papers = []
+    for paper_id in selected_paper_ids:
+        paper = Paper.objects.get(paper_id=paper_id)
+        selected_papers.append(paper)
     # 将选中的论文对象转换为字典
     papers = [paper.to_dict() for paper in selected_papers]
-
     # 将推荐数据缓存一天
     cache.set('recommended_papers', papers, timeout=86400)
 
