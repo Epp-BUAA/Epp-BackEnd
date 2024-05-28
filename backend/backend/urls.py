@@ -81,9 +81,10 @@ urlpatterns = [
                   # 管理端
                   path("api/manage/users", manage.user_list),
                   path("api/manage/papers", manage.paper_list),
-                  path("api/manage/commentReport", manage.comment_report_list),
+                  path("api/manage/commentReports", manage.comment_report_list),
+                  path("api/manage/commentReportDetail", manage.comment_report_detail),
                   path("api/manage/judgeCmtRpt", manage.judge_comment_report),
-                  path("api/manage/delComment", manage.delete_comment),
+                  # path("api/manage/delComment", manage.delete_comment),
                   path("api/manage/userProfile", manage.user_profile),
                   path("api/manage/userStatistic", manage.user_statistic),
                   path("api/manage/paperOutline", manage.paper_outline),
