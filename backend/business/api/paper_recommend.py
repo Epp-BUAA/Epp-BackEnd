@@ -36,7 +36,7 @@ def get_recommendation(request):
     if cached_papers:
         return reply.success(data={'papers': cached_papers}, msg='success')
     # 从数据库中获取所有 Paper 对象的 ID
-    papers_ids = Paper.objects.values_list('paper_id', flat=True)
+    papers_ids = list(Paper.objects.values_list('paper_id', flat=True))
     # 随机选择五篇论文的 ID
     selected_paper_ids = random.sample(papers_ids, min(5, len(papers_ids)))
     # 获取选中论文的详细信息
