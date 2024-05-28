@@ -239,7 +239,14 @@ def create_abstract_report(request):
         content = open(report_path, 'r').read()
         print(content)
         return success({'summary': content}, msg="生成摘要成功")
-    ar = AbstractReport.objects.create(file_local_path=local_path, report_path=report_path)
+    if ar is None:
+        ar = AbstractReport.objects.create(file_local_path=local_path, report_path=report_path)
+        ar.save()
+    ### 将所有windows目录改为linux格式
+    local_path = local_path.replace('\\', '/')
+    report_path = report_path.replace('\\', '/')
+    ar.file_local_path = local_path
+    ar.report_path = report_path
     ar.save()
     # 上传到远端服务器, 创建新的临时知识库
     upload_temp_docs_url = f'http://{settings.REMOTE_MODEL_BASE_PATH}/knowledge_base/upload_temp_docs'
