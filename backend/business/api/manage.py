@@ -440,3 +440,16 @@ def paper_statistic(request):
 
     else:
         return reply.fail(msg="mode参数错误")
+    
+    
+def get_gpu_usage(request):
+    import requests
+    # 获取 GPU 使用情况
+    # 调用 http://172.17.62.88:8001/gpu_usage
+    url = 'http://172.17.62.88:8001/gpu_usage'
+    try:
+        res = requests.get(url)
+        res.raise_for_status()  # 检查是否有 HTTP 错误
+        return reply.success(data={'GPU_info':res.json()}, msg="GPU 使用情况获取成功")
+    except requests.exceptions.RequestException as e:
+        return reply.fail(msg="获取 GPU 使用情况失败")
