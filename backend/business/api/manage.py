@@ -479,9 +479,12 @@ def record_visit(request):
 
     ip_address = request.META.get('REMOTE_ADDR')
     now = datetime.datetime.now()
-    start_of_hour = now.replace(minute=0, second=0, microsecond=0)  # 记录当前小时
+    if now > now.replace(minute=30, second=0, microsecond=0):
+        start_of_hour = now.replace(minute=30, second=0, microsecond=0)
+    else:
+        start_of_hour = now.replace(minute=0, second=0, microsecond=0)
 
-    # 每个ip地址半小时只记录一次
+        # 每个ip地址半小时只记录一次
     if not UserVisit.objects.filter(ip_address=ip_address, timestamp__gte=start_of_hour,
                                     timestamp__lt=start_of_hour + datetime.timedelta(minutes=30)).first():
         UserVisit(ip_address=ip_address, timestamp=now).save()
