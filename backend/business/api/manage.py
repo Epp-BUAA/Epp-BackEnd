@@ -15,6 +15,7 @@ from collections import defaultdict
 from business.models import User, Paper, Admin, CommentReport, Notification, UserDocument, UserDailyAddition, \
     Subclass, UserVisit
 from business.utils import reply
+import requests
 
 
 def get_last_10_months():
@@ -444,16 +445,24 @@ def paper_statistic(request):
 
 
 @require_http_methods('GET')
-def get_gpu_usage(request):
-    import requests
+def get_server_status(request):
+    mode = int(request.GET.get('mode', default=0))
+    if mode == 1:
+        # 后端服务器
+        pass
+    elif mode == 2:
+        # 模型服务器
+        url = 'http://172.17.62.88:8001/gpu_usage'
+        try:
+            res = requests.get(url)
+            res.raise_for_status()  # 检查是否有 HTTP 错误
+            return reply.success(data={'GPU_info': res.json()}, msg="GPU 使用情况获取成功")
+        except requests.exceptions.RequestException as e:
+            return reply.fail(msg="获取模型服务器信息失败")
+    else:
+        return reply.fail(msg="mode参数错误")
     # 获取 GPU 使用情况
-    url = 'http://172.17.62.88:8001/gpu_usage'
-    try:
-        res = requests.get(url)
-        res.raise_for_status()  # 检查是否有 HTTP 错误
-        return reply.success(data={'GPU_info': res.json()}, msg="GPU 使用情况获取成功")
-    except requests.exceptions.RequestException as e:
-        return reply.fail(msg="获取 GPU 使用情况失败")
+
 
 
 @require_http_methods('POST')

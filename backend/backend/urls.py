@@ -91,7 +91,7 @@ urlpatterns = [
                   path("api/manage/userStatistic", manage.user_statistic),
                   path("api/manage/paperOutline", manage.paper_outline),
                   path("api/manage/paperStatistic", manage.paper_statistic),
-                  path("api/manage/getGPUInfo", manage.get_gpu_usage),
+                  path("api/manage/serverStatus", manage.get_gpu_usage),
                   path("api/manage/recordVisit", manage.record_visit),
 
                   # 信息检索模块
