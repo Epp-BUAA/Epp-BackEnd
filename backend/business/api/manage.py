@@ -478,7 +478,6 @@ def record_visit(request):
         return reply.fail(msg="请先正确登录")
 
     ip_address = request.META.get('REMOTE_ADDR')
-    print(ip_address)
     now = datetime.datetime.now()
     start_of_hour = now.replace(minute=0, second=0, microsecond=0)  # 记录当前小时
 
