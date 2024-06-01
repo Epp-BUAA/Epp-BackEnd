@@ -32,6 +32,8 @@ from business.api.search import get_user_search_history, vector_query, dialog_qu
 from business.utils.paper_vdb_init import local_vdb_init, easy_vector_query
 from business.api.summary import generate_summary, create_abstract_report, get_summary_status
 
+from business.api.paper_recommend import get_recommendation
+
 urlpatterns = [
                   path("admin/", admin.site.urls),
 
@@ -89,6 +91,7 @@ urlpatterns = [
                   path("api/manage/userStatistic", manage.user_statistic),
                   path("api/manage/paperOutline", manage.paper_outline),
                   path("api/manage/paperStatistic", manage.paper_statistic),
+                  path("api/manage/getGPUInfo", manage.get_gpu_usage),
 
                   # 信息检索模块
                   path("api/search/easyVectorQuery", easy_vector_query),
@@ -120,4 +123,8 @@ urlpatterns = [
                   path("api/summary/generateSummaryReport", generate_summary),
                   path("api/summary/generateAbstractReport", create_abstract_report),
                   path("api/summary/getSummaryStatus", get_summary_status),
+                  
+                  # 热门文献推荐
+                  path("api/paperRecommend", get_recommendation),
+                  path("api/refresh", get_recommendation)
               ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

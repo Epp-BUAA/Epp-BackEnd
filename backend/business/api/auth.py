@@ -82,6 +82,8 @@ def userInfo(request):
 def testLogin(request):
     if request.method == 'GET':
         username = request.session.get('username')
+        if not username:
+            return JsonResponse({'error': '未登录'}, status=403)
         return JsonResponse({'username': username})
     else:
         return JsonResponse({'error': '请求方法错误'}, status=400)
