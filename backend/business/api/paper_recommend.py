@@ -7,7 +7,6 @@
 所以我选择了从arXiv上爬取最近一周的cv的每天10篇论文，然后通过总结这些论文的关键词，来进行推荐
 """
 
-
 # 定时调用这个接口
 # yourappname/tasks.py
 
@@ -43,7 +42,8 @@ def queryGLM(msg: str, history=None) -> str:
     )
     print("ChatGLM3-6B：", response.choices[0].message.content)
     history.append({"role": "assistant", "content": response.choices[0].message.content})
-    return response.choices[0].message.content    
+    return response.choices[0].message.content
+
 
 class arxiv_paper:
     def __init__(self, title, summary, published, url, authors):
@@ -52,8 +52,10 @@ class arxiv_paper:
         self.published = published
         self.url = url
         self.authors = authors
+
     def __str__(self):
         return f"Title: {self.title}\nSummary: {self.summary}\nPublished: {self.published}\nURL: {self.url}\nAuthor: {self.authors}\n"
+
     def __dict__(self):
         author_str = ""
         for author in self.authors:
@@ -65,6 +67,8 @@ class arxiv_paper:
             "url": self.url,
             "author": author_str
         }
+
+
 def get_authors(entry):
     authors = []
     author_nodes = entry.findall('{http://www.w3.org/2005/Atom}author')
@@ -72,7 +76,9 @@ def get_authors(entry):
         author_name = author_node.find('{http://www.w3.org/2005/Atom}name').text
         authors.append(author_name)
     return authors
-def query_arxiv_by_date_and_field(start_date, end_date, field="computer vision", max_results=200)->list[arxiv_paper]:
+
+
+def query_arxiv_by_date_and_field(start_date, end_date, field="computer vision", max_results=200) -> list[arxiv_paper]:
     query = f"submittedDate:[{start_date} TO {end_date}] AND all:{field}"
     url = f"http://arxiv.org/api/query?search_query={query}&id_list=&start=0&max_results={max_results}"
     response = requests.get(url)
@@ -94,6 +100,7 @@ def query_arxiv_by_date_and_field(start_date, end_date, field="computer vision",
         print("Failed to fetch data.")
     return papers
 
+
 def refreshCache(self):
     # 在这里写你想要执行的任务
     # 获取当前日期，以及前一周的日期
@@ -112,7 +119,7 @@ def refreshCache(self):
     for paper in papers:
         msg = '这是一段关于' + paper.title + '的摘要，帮我总结三个关键词：' + paper.summary
         keywords.append(queryGLM(msg))
-    
+
     # 从关键词中提取论文
     key = queryGLM(msg='帮我从这些关键词中提取出来十个关键词：' + ','.join(str(keywords)), history=[])
     from business.utils.paper_vdb_init import get_filtered_paper
@@ -124,9 +131,10 @@ def refreshCache(self):
         p = Paper.objects.get(paper_id=paper)
         info.extend(p.to_dict())
     cache.set('recommended_papers', info, timeout=86400)
-    
+
 
 from django.core.cache import cache
+
 
 def get_recommendation(request):
     # 尝试从缓存中获取推荐数据

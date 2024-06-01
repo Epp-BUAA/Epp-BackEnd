@@ -32,13 +32,14 @@ def queryGLM(msg: str, history=None) -> str:
     )
     print("ChatGLM3-6B：", response.choices[0].message.content)
     history.append({"role": "assistant", "content": response.choices[0].message.content})
-    return response.choices[0].message.content    
+    return response.choices[0].message.content
+
 
 def get_summary(paper_ids, report_id):
     report = SummaryReport.objects.get(report_id=report_id)
     report.status = SummaryReport.STATUS_IN_PROGRESS
     try:
-        paper_content = [] # 每个论文一个标题，然后是内容
+        paper_content = []  # 每个论文一个标题，然后是内容
         paper_conclusions = []
         paper_themes = []
         paper_situations = []
@@ -55,16 +56,16 @@ def get_summary(paper_ids, report_id):
         # 生成引言
         introduction_prompt = '请根据以下信息生成综述的引言：\n'
         for i in range(len(paper_ids)):
-            introduction_prompt += '第' + str(i+1) + '篇论文的题目是：' + paper_themes[i] + '\n'
-            introduction_prompt += '第' + str(i+1) + '篇论文的现状部分是：' + paper_situations[i] + '\n'
+            introduction_prompt += '第' + str(i + 1) + '篇论文的题目是：' + paper_themes[i] + '\n'
+            introduction_prompt += '第' + str(i + 1) + '篇论文的现状部分是：' + paper_situations[i] + '\n'
         introduction = queryGLM(introduction_prompt, [])
         # 生成结论
         conclusion_prompt = '请根据以下信息生成综述的结论：\n'
         for i in range(len(paper_ids)):
-            conclusion_prompt += '第' + str(i+1) + '篇论文的题目是：' + paper_themes[i] + '\n'
-            conclusion_prompt += '第' + str(i+1) + '篇论文的结论部分是：' + paper_conclusions[i] + '\n'
+            conclusion_prompt += '第' + str(i + 1) + '篇论文的题目是：' + paper_themes[i] + '\n'
+            conclusion_prompt += '第' + str(i + 1) + '篇论文的结论部分是：' + paper_conclusions[i] + '\n'
         conclusion = queryGLM(conclusion_prompt, [])
-        
+
         # 生成综述
         summary = '# 引言\n' + introduction + '\n'
         summary += '# 正文\n'
@@ -86,7 +87,8 @@ def get_summary(paper_ids, report_id):
     except Exception as e:
         print(e)
         report.delete()
-    
+
+
 @require_http_methods(['GET'])
 def get_summary_status(request):
     '''
@@ -99,6 +101,7 @@ def get_summary_status(request):
     if report.status == SummaryReport.STATUS_PENDING or report.status == SummaryReport.STATUS_IN_PROGRESS:
         return success({'status': '正在生成中'})
     return success({'status': '生成成功'})
+
 
 @require_http_methods(['POST'])
 def generate_summary(request):
@@ -113,7 +116,7 @@ def generate_summary(request):
     from business.models import SummaryReport, User
     user = User.objects.filter(username=username).first()
     report = SummaryReport.objects.create(user_id=user, status=SummaryReport.STATUS_PENDING)
-    report.title = '综述'+str(report.report_id)
+    report.title = '综述' + str(report.report_id)
     p = settings.USER_REPORTS_PATH + '/' + str(report.report_id) + '.md'
     report.report_path = p
     report.save()
@@ -134,20 +137,21 @@ def generate_summary(request):
             return fail(msg='综述生成输入文章数目过多')
         # 先把每篇论文需要的信息生成好了
         threading.Thread(target=get_summary, args=(paper_ids, report.report_id)).start()
-        return JsonResponse({'message': "综述生成成功", 'report_id' : report.report_id}, status=200)
+        return JsonResponse({'message': "综述生成成功", 'report_id': report.report_id}, status=200)
     except Exception as e:
         print(e)
         report.delete()
         return JsonResponse({'message': "综述生成失败"}, status=400)
-    
-    
+
+
 ##################################单篇摘要生成##############################
 
 import os
 import requests
 from business.utils.download_paper import downloadPaper
 
-def create_tmp_knowledge_base(dir : str) -> str:
+
+def create_tmp_knowledge_base(dir: str) -> str:
     '''
     将cache中的所有文件全部上传到远端服务器，创建一个临时知识库
     '''
@@ -161,7 +165,7 @@ def create_tmp_knowledge_base(dir : str) -> str:
     for root, dirs, files in os.walk(dir):
         for file in files:
             file_path = os.path.join(root, file)
-            files.append(('files', (file, open(file_path, 'rb'), 
+            files.append(('files', (file, open(file_path, 'rb'),
                                     'application/vnd.openxmlformats-officedocument.presentationml.presentation')))
     response = requests.request("POST", upload_temp_docs_url, files=files)
     print(response)
@@ -174,7 +178,8 @@ def create_tmp_knowledge_base(dir : str) -> str:
         return tmp_kb_id
     else:
         return None
-    
+
+
 def ask_ai_single_paper(payload):
     file_chat_url = f'http://{settings.REMOTE_MODEL_BASE_PATH}/chat/file_chat'
     headers = {
@@ -195,8 +200,8 @@ def ask_ai_single_paper(payload):
                     doc = str(doc).replace("\n", " ").replace("<span style='color:red'>", "").replace("</span>", "")
                     origin_docs.append(doc)
     return ai_reply, origin_docs
-    
-    
+
+
 def create_abstract_report(request):
     request_data = json.loads(request.body)
     document_id = request_data.get("document_id")
@@ -216,8 +221,8 @@ def create_abstract_report(request):
         title = document.title
     elif len(paper_id) != 0:
         p = Paper.objects.filter(paper_id=paper_id).first()
-        pdf_url = p.original_url.replace('abs/','pdf/') + '.pdf'
-        local_path = settings.PAPERS_URL  + str(p.paper_id) + '.pdf'
+        pdf_url = p.original_url.replace('abs/', 'pdf/') + '.pdf'
+        local_path = settings.PAPERS_URL + str(p.paper_id) + '.pdf'
         print(local_path)
         print(pdf_url)
         if os.path.exists(local_path) == False:
@@ -230,11 +235,11 @@ def create_abstract_report(request):
     from business.models.abstract_report import AbstractReport
     report_path = os.path.join(settings.USER_REPORTS_PATH, str(title) + '.md')
     print(report_path)
-    
+
     # 先查询存不存在响应的解读
-    
+
     ar = AbstractReport.objects.filter(file_local_path=local_path).first()
-    
+
     # 不存在
     if ar is None:
         # 创建一个线程，直接开始创建
@@ -245,7 +250,7 @@ def create_abstract_report(request):
         print(local_path)
         files = [
             ('files', (str(title) + content_type, open(local_path, 'rb'),
-                    'application/vnd.openxmlformats-officedocument.presentationml.presentation'))
+                       'application/vnd.openxmlformats-officedocument.presentationml.presentation'))
         ]
         response = requests.post(upload_temp_docs_url, files=files)
 
@@ -268,8 +273,10 @@ def create_abstract_report(request):
         assert ar.status == AbstractReport.STATUS_TIMEOUT
         ar.delete()
         return fail(msg="生成摘要失败")
-    
+
+
 from business.models.abstract_report import AbstractReport
+
 
 class abs_control_thread(threading.Thread):
     def __init__(self, tmp_kb_id, report_path, local_path):
@@ -277,9 +284,9 @@ class abs_control_thread(threading.Thread):
         self.tmp_kb_id = tmp_kb_id
         self.report_path = report_path
         self.local_path = local_path
-        self.ttl = 300 # 5分钟
+        self.ttl = 300  # 5分钟
         self.setDaemon(True)
-    
+
     def run(self):
         import time
         cur = 0
@@ -293,7 +300,8 @@ class abs_control_thread(threading.Thread):
             cur += 1
             time.sleep(1)
         a.stop()
-        
+
+
 class abs_gen_thread(threading.Thread):
     def __init__(self, tmp_kb_id, report_path, local_path):
         threading.Thread.__init__(self)
@@ -302,7 +310,7 @@ class abs_gen_thread(threading.Thread):
         self.local_path = local_path
         self.isend = False
         self.setDaemon(True)
-    
+
     def run(self):
         ar = AbstractReport.objects.get(file_local_path=self.local_path)
         ar.status = AbstractReport.STATUS_IN_PROGRESS
@@ -310,85 +318,84 @@ class abs_gen_thread(threading.Thread):
         # 开始生成摘要
         ## 现状，解决问题，解决方法，实验结果，结论
         summary += '# 摘要报告\n'
-        
+
         from business.api.paper_interpret import do_file_chat
-        
+
         #### 研究现状
         if self.isend:
             ar.status = AbstractReport.STATUS_TIMEOUT
             return
-        
+
         query_current_situation = '请讲述研究现状部分\n'
         payload_cur_situation = json.dumps({
             "query": query_current_situation,
             "knowledge_id": self.tmp_kb_id,
             "prompt_name": "default"  # 使用普通对话模式
         })
-        response_current_situation,_ = ask_ai_single_paper(payload=payload_cur_situation)
+        response_current_situation, _ = ask_ai_single_paper(payload=payload_cur_situation)
         print(_)
         summary += '## 研究现状\n' + response_current_situation + '\n'
         if self.isend:
             ar.status = AbstractReport.STATUS_TIMEOUT
             return
-        
+
         #### 解决问题
-        
+
         query_problem = '请讲讲这篇论文解决的问题\n'
         payload_problem = json.dumps({
             "query": query_problem,
             "knowledge_id": self.tmp_kb_id,
             "prompt_name": "default"
         })
-        response_problem,_ = ask_ai_single_paper(payload=payload_problem)
+        response_problem, _ = ask_ai_single_paper(payload=payload_problem)
         print(_)
         summary += '## 解决问题\n' + response_problem + '\n'
         if self.isend:
             ar.status = AbstractReport.STATUS_TIMEOUT
             return
         #### 解决方法
-        
+
         query_solution = '请讲讲这篇论文提出的解决方法\n'
         payload_solution = json.dumps({
             "query": query_problem,
             "knowledge_id": self.tmp_kb_id,
             "prompt_name": "default"  # 使用普通对话模式
         })
-        response_solution,_ = ask_ai_single_paper(payload=payload_solution)
+        response_solution, _ = ask_ai_single_paper(payload=payload_solution)
         print(_)
         summary += '## 解决方法\n' + response_solution + '\n'
         if self.isend:
             ar.status = AbstractReport.STATUS_TIMEOUT
-            return 
-        #### 实验结果
-        
+            return
+            #### 实验结果
+
         query_result = '请讲讲这篇论文实验得到的结果\n'
         payload_res = json.dumps({
             "query": query_result,
             "knowledge_id": self.tmp_kb_id,
             "prompt_name": "default"  # 使用普通对话模式
         })
-        response_result,_ = ask_ai_single_paper(payload=payload_res)
+        response_result, _ = ask_ai_single_paper(payload=payload_res)
         print(_)
         summary += '## 实验结果\n' + response_result + '\n'
         if self.isend:
             ar.status = AbstractReport.STATUS_TIMEOUT
             return
         #### 结论
-        
+
         query_conclusion = '请讲讲这篇论文得出的结论\n'
         payload_conclusion = json.dumps({
             "query": query_conclusion,
             "knowledge_id": self.tmp_kb_id,
             "prompt_name": "default"  # 使用普通对话模式
         })
-        response_conclusion,_ = ask_ai_single_paper(payload=payload_conclusion)
+        response_conclusion, _ = ask_ai_single_paper(payload=payload_conclusion)
         print(_)
         summary += '## 结论\n' + response_conclusion + '\n'
-        
-        
+
         # 修改语病，更加通顺
         print(summary)
-        
+
         prompt = '这是一篇摘要，请让他更加通顺，结果使用简体中文：\n' + summary
         response = queryGLM(prompt, [])
         print(response)
@@ -397,8 +404,7 @@ class abs_gen_thread(threading.Thread):
         ar.report_path = self.report_path
         ar.status = AbstractReport.STATUS_COMPLETED
         ar.save()
-        
+
     def stop(self):
         # 设置线程停止
         self.isend = True
-    

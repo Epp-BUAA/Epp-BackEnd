@@ -440,16 +440,29 @@ def paper_statistic(request):
 
     else:
         return reply.fail(msg="mode参数错误")
-    
-    
+
+
+@require_http_methods('GET')
 def get_gpu_usage(request):
     import requests
     # 获取 GPU 使用情况
-    # 调用 http://172.17.62.88:8001/gpu_usage
     url = 'http://172.17.62.88:8001/gpu_usage'
     try:
         res = requests.get(url)
         res.raise_for_status()  # 检查是否有 HTTP 错误
-        return reply.success(data={'GPU_info':res.json()}, msg="GPU 使用情况获取成功")
+        return reply.success(data={'GPU_info': res.json()}, msg="GPU 使用情况获取成功")
     except requests.exceptions.RequestException as e:
         return reply.fail(msg="获取 GPU 使用情况失败")
+
+
+@require_http_methods('POST')
+def record_visit(request):
+    """ 记录用户访问 """
+    # 需要用户鉴权
+    username = request.session.get('username')
+    user = User.objects.filter(username=username).first()
+    if not user:
+        return reply.fail(msg="请先正确登录")
+
+
+    return reply.success(msg="登记成功")
