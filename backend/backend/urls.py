@@ -92,6 +92,7 @@ urlpatterns = [
                   path("api/manage/paperOutline", manage.paper_outline),
                   path("api/manage/paperStatistic", manage.paper_statistic),
                   path("api/manage/getGPUInfo", manage.get_gpu_usage),
+                  path("api/manage/recordVisit", manage.record_visit),
 
                   # 信息检索模块
                   path("api/search/easyVectorQuery", easy_vector_query),
@@ -123,7 +124,7 @@ urlpatterns = [
                   path("api/summary/generateSummaryReport", generate_summary),
                   path("api/summary/generateAbstractReport", create_abstract_report),
                   path("api/summary/getSummaryStatus", get_summary_status),
-                  
+
                   # 热门文献推荐
                   path("api/paperRecommend", get_recommendation),
                   path("api/refresh", get_recommendation)

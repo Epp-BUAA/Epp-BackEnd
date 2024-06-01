@@ -12,7 +12,8 @@ from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 import json
 import datetime
 from collections import defaultdict
-from business.models import User, Paper, Admin, CommentReport, Notification, UserDocument, UserDailyAddition, Subclass
+from business.models import User, Paper, Admin, CommentReport, Notification, UserDocument, UserDailyAddition, \
+    Subclass, UserVisit
 from business.utils import reply
 
 
@@ -464,5 +465,14 @@ def record_visit(request):
     if not user:
         return reply.fail(msg="请先正确登录")
 
+    ip_address = request.META.get('REMOTE_ADDR')
+    print(ip_address)
+    now = datetime.datetime.now()
+    start_of_hour = now.replace(minute=0, second=0, microsecond=0)  # 记录当前小时
+
+    # 每个ip地址半小时只记录一次
+    if not UserVisit.objects.filter(ip_address=ip_address, timestamp__gte=start_of_hour,
+                                    timestamp__lt=start_of_hour + datetime.timedelta(minutes=30)).first():
+        UserVisit(ip_address=ip_address, timestamp=now).save()
 
     return reply.success(msg="登记成功")

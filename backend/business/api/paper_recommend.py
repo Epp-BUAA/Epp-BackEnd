@@ -16,10 +16,10 @@ from business.utils import reply
 from business.models import Paper
 import random
 import requests
-from bs4 import BeautifulSoup
-import arxiv
-from translate import Translator
-from tqdm import tqdm
+# from bs4 import BeautifulSoup
+# import arxiv
+# from translate import Translator
+# from tqdm import tqdm
 import datetime
 from datetime import datetime, timedelta
 from xml.etree import ElementTree as ET

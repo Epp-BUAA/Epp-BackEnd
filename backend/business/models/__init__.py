@@ -12,4 +12,5 @@ from .user_document import UserDocument
 from .search_record import SearchRecord
 from .notification import Notification
 from .statistic import UserDailyAddition
+from .statistic import UserVisit
 from .subclass import Subclass
