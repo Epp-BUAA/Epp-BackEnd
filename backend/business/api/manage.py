@@ -10,12 +10,14 @@ from django.db.models import Count
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 
 import json
+import requests
 import datetime
 from collections import defaultdict
 from business.models import User, Paper, Admin, CommentReport, Notification, UserDocument, UserDailyAddition, \
     Subclass, UserVisit
 from business.utils import reply
-import requests
+import business.utils.system_info as system_info
+
 
 
 def get_last_10_months():
@@ -449,6 +451,7 @@ def get_server_status(request):
     mode = int(request.GET.get('mode', default=0))
     if mode == 1:
         # 后端服务器
+
         pass
     elif mode == 2:
         # 模型服务器
