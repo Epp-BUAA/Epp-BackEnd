@@ -250,7 +250,7 @@ def judge_comment_report(request):
 
     report.processed = True
     report.save()
-    return reply.success(msg="举报已审核")
+    return reply.success(msg="举报审核成功")
 
 
 # @require_http_methods('DELETE')
