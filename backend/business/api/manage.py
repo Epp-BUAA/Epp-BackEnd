@@ -457,7 +457,7 @@ def get_server_status(request):
         try:
             res = requests.get(url)
             res.raise_for_status()  # 检查是否有 HTTP 错误
-            return reply.success(data={'GPU_info': res.json()}, msg="模型服务器硬件信息获取成功")
+            return reply.success(data=res.json(), msg="模型服务器硬件信息获取成功")
         except requests.exceptions.RequestException:
             return reply.fail(msg="获取模型服务器硬件信息失败")
     else:
