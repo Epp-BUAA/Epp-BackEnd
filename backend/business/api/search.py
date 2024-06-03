@@ -60,7 +60,7 @@ def queryGLM(msg: str, history=None) -> str:
     }
     payload = json.dumps({
         "query": msg,
-        "prompt_name": "epp",
+        "prompt_name": "deafult",
         "temperature": 0.3
     })
     response = requests.request("POST", chat_chat_url, data=payload, headers=headers, stream=False) 
@@ -68,6 +68,8 @@ def queryGLM(msg: str, history=None) -> str:
     print(decoded_line)
     if decoded_line.startswith('data'):
         data = json.loads(decoded_line.replace('data: ', ''))
+    else:
+        data = decoded_line
     return data['text']
 
 
