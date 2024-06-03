@@ -63,6 +63,7 @@ def queryGLM(msg: str, history=None) -> str:
 
 
 def get_summary(paper_ids, report_id):
+    print('report_id:', report_id)
     report = SummaryReport.objects.get(report_id=report_id)
     report.status = SummaryReport.STATUS_IN_PROGRESS
     try:
@@ -101,8 +102,7 @@ def get_summary(paper_ids, report_id):
             summary += paper_content[i] + '\n'
         summary += '# 结论\n' + conclusion + '\n'
         # 修改语病，更加通顺
-        prompt = '这是一篇综述，请让他更加通顺：\n' + summary
-        response = queryGLM(prompt, [])
+        response = summary
         md_path = settings.USER_REPORTS_PATH + '/' + str(report.report_id) + '.md'
         with open(md_path, 'w', encoding='utf-8') as f:
             f.write(response)
@@ -124,9 +124,9 @@ def get_summary_status(request):
     report_id = request.GET.get('report_id')
     report = SummaryReport.objects.filter(report_id=report_id).first()
     if report is None:
-        return fail('综述不存在')
+        return fail(data={'status': '综述不存在'})
     if report.status == SummaryReport.STATUS_PENDING or report.status == SummaryReport.STATUS_IN_PROGRESS:
-        return success({'status': '正在生成中'})
+        return fail(data={'status': '正在生成中'})
     return success({'status': '生成成功'})
 
 
@@ -422,9 +422,7 @@ class abs_gen_thread(threading.Thread):
 
         # 修改语病，更加通顺
         print(summary)
-
-        prompt = '这是一篇摘要，请让他更加通顺，结果使用简体中文：\n' + summary
-        response = queryGLM(prompt, [])
+        response = summary
         print(response)
         with open(self.report_path, 'w', encoding='utf-8') as f:
             f.write(response)
