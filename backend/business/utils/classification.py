@@ -103,6 +103,20 @@ def classify():
         paper.save()
 
 if __name__ == '__main__':
-    delete_all_subclasses()
-    create_labels()
-    classify()
+    # delete_all_subclasses()
+    # create_labels()
+    # classify()
+    dict1 = dict({
+        "a": {
+            "b": 100
+        },
+        "y": 200
+    })
+    dict2 = dict({
+        "a": {
+            "c": 200
+        },
+        "z": 400
+    })
+    dict1.update(dict2)
+    print(dict1)

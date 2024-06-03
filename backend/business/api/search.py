@@ -289,7 +289,7 @@ def restore_search_record(request):
         paper_infos.append(paper.to_dict())
     history['paper_infos'] = paper_infos
     try:
-        kb_id  = build_abs_kb_by_paper_ids([paper.paper_id for paper in papers], search_record.search_record_id)
+        kb_id = build_abs_kb_by_paper_ids([paper.paper_id for paper in papers], search_record.search_record_id)
         insert_search_record_2_kb(search_record_id, kb_id)
         # history['kb_id'] = kb_id
     except Exception as e:
