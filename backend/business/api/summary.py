@@ -25,18 +25,19 @@ def queryGLM(msg: str, history=None) -> str:
     '''
     对chatGLM3-6B发出一次单纯的询问
     '''
-    chat_chat_url = f'http://{settings.REMOTE_MODEL_BASE_PATH}/chat/chat'
+    print(msg)
+    chat_chat_url = f'http://172.17.62.88:7861/chat/chat'
     headers = {
         'Content-Type': 'application/json'
     }
     payload = json.dumps({
         "query": msg,
-        "prompt_name": "keyword",
+        "prompt_name": "epp",
         "temperature": 0.3
     })
-    response = requests.request("POST", chat_chat_url, data=payload, headers=headers, stream=False)    
+    response = requests.request("POST", chat_chat_url, data=payload, headers=headers, stream=False) 
     decoded_line = response.iter_lines().__next__().decode('utf-8')
-    # print(decoded_line)
+    print(decoded_line)
     if decoded_line.startswith('data'):
         data = json.loads(decoded_line.replace('data: ', ''))
     return data['text']
