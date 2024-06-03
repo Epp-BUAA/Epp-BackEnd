@@ -22,17 +22,24 @@ def queryGLM(msg: str, history=None) -> str:
     '''
     对chatGLM3-6B发出一次单纯的询问
     '''
-    openai.api_base = f'http://{settings.REMOTE_CHATCHAT_GLM3_OPENAI_PATH}/v1'
-    openai.api_key = "none"
-    history.append({"role": "user", "content": msg})
-    response = openai.ChatCompletion.create(
-        model="chatglm3-6b",
-        messages=history,
-        stream=False
-    )
-    print("ChatGLM3-6B：", response.choices[0].message.content)
-    history.append({"role": "assistant", "content": response.choices[0].message.content})
-    return response.choices[0].message.content
+    '''
+    对chatGLM3-6B发出一次单纯的询问
+    '''
+    chat_chat_url = f'http://{settings.REMOTE_MODEL_BASE_PATH}/chat/chat'
+    headers = {
+        'Content-Type': 'application/json'
+    }
+    payload = json.dumps({
+        "query": msg,
+        "prompt_name": "keyword",
+        "temperature": 0.3
+    })
+    response = requests.request("POST", chat_chat_url, data=payload, headers=headers, stream=False)    
+    decoded_line = response.iter_lines().__next__().decode('utf-8')
+    # print(decoded_line)
+    if decoded_line.startswith('data'):
+        data = json.loads(decoded_line.replace('data: ', ''))
+    return data['text']
 
 
 def get_summary(paper_ids, report_id):

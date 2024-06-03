@@ -50,18 +50,21 @@ def queryGLM(msg: str, history=None) -> str:
     '''
     对chatGLM3-6B发出一次单纯的询问
     '''
-    openai.api_base = f'http://{settings.REMOTE_CHATCHAT_GLM3_OPENAI_PATH}/v1'
-    openai.api_key = "none"
-    if history is None:
-        history = [{'role' : 'user', 'content': msg}]
-    else:
-        history.extend([{'role' : 'user', 'content': msg}])
-    response = openai.ChatCompletion.create(
-        model="chatglm3-6b",
-        messages=history,
-        stream=False
-    )
-    return response.choices[0].message.content
+    chat_chat_url = f'http://{settings.REMOTE_MODEL_BASE_PATH}/chat/chat'
+    headers = {
+        'Content-Type': 'application/json'
+    }
+    payload = json.dumps({
+        "query": msg,
+        "prompt_name": "keyword",
+        "temperature": 0.3
+    })
+    response = requests.request("POST", chat_chat_url, data=payload, headers=headers, stream=False)    
+    decoded_line = response.iter_lines().__next__().decode('utf-8')
+    # print(decoded_line)
+    if decoded_line.startswith('data'):
+        data = json.loads(decoded_line.replace('data: ', ''))
+    return data['text']
 
 
 from django.views.decorators.http import require_http_methods
