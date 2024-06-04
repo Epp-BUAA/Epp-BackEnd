@@ -45,23 +45,48 @@ def get_tmp_kb_id(search_record_id):
     else:
         return None
 
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 def queryGLM(msg: str, history=None) -> str:
     '''
     对chatGLM3-6B发出一次单纯的询问
     '''
-    openai.api_base = f'http://{settings.REMOTE_CHATCHAT_GLM3_OPENAI_PATH}/v1'
-    openai.api_key = "none"
-    if history is None:
-        history = [{'role' : 'user', 'content': msg}]
-    else:
-        history.extend([{'role' : 'user', 'content': msg}])
-    response = openai.ChatCompletion.create(
-        model="chatglm3-6b",
-        messages=history,
-        stream=False
-    )
-    return response.choices[0].message.content
+    print(msg)
+    chat_chat_url = 'http://172.17.62.88:7861/chat/chat'
+    headers = {
+        'Content-Type': 'application/json'
+    }
+    payload = json.dumps({
+        "query": msg,
+        "prompt_name": "default",
+        "temperature": 0.3
+    })
+
+    session = requests.Session()
+    retry = Retry(total=5, backoff_factor=0.1, status_forcelist=[500, 502, 503, 504])
+    adapter = HTTPAdapter(max_retries=retry)
+    session.mount('http://', adapter)
+    session.mount('https://', adapter)
+
+    try:
+        response = session.post(chat_chat_url, data=payload, headers=headers, stream=False)
+        response.raise_for_status()
+
+        # 确保正确处理分块响应
+        decoded_line = next(response.iter_lines()).decode('utf-8')
+        print(decoded_line)
+        if decoded_line.startswith('data'):
+            data = json.loads(decoded_line.replace('data: ', ''))
+        else:
+            data = decoded_line
+        return data['text']
+    except requests.exceptions.ChunkedEncodingError as e:
+        print(f"ChunkedEncodingError: {e}")
+        return "错误: 响应提前结束"
+    except requests.exceptions.RequestException as e:
+        print(f"RequestException: {e}")
+        return f"错误: {e}"
 
 
 from django.views.decorators.http import require_http_methods
