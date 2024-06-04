@@ -3,12 +3,12 @@
     api/manage/...
     鉴权先不加了吧...
 """
-import math
-
 from django.views.decorators.http import require_http_methods
 from django.db.models import Count
+from django.db.models.functions import TruncHour
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 
+import math
 import json
 import requests
 import datetime
@@ -446,7 +446,7 @@ def paper_statistic(request):
 
 
 @require_http_methods('GET')
-def get_server_status(request):
+def server_status(request):
     mode = int(request.GET.get('mode', default=0))
     if mode == 1:
         # web服务器
@@ -486,3 +486,38 @@ def record_visit(request):
         UserVisit(ip_address=ip_address, timestamp=now).save()
 
     return reply.success(msg="登记成功")
+
+
+@require_http_methods('GET')
+def visit_statistic(request):
+    """ 用户访问统计 """
+    # 初始化时间段
+    end_time = datetime.datetime.now()
+    start_time = (end_time - datetime.timedelta(days=5)).replace(hour=0, minute=0, second=0, microsecond=0)
+    end_time = end_time.replace(hour=23, minute=59, second=59, microsecond=999999)
+
+    all_hours = []
+    current_time = start_time
+    while current_time <= end_time:
+        all_hours.append(current_time)
+        current_time += datetime.timedelta(hours=1)
+
+    # 查询数据库填充数据
+    data = {
+        "hours": [],
+        "data": []
+    }
+    visits_per_hour = (UserVisit.objects
+                       .filter(timestamp__range=(start_time, end_time))
+                       .annotate(hour=TruncHour('timestamp'))
+                       .values('hour')
+                       .annotate(count=Count('id'))
+                       .order_by('hour'))
+
+    visits_dict = {visit['hour']: visit['count'] for visit in visits_per_hour}
+
+    for hour in all_hours:
+        data['hours'].append(hour.strftime("%Y-%m-%d %H:%M:%S"))
+        data['data'].append(visits_dict.get(hour, 0))
+
+    return reply.success(data=data, msg="访问量统计信息获取成功")
