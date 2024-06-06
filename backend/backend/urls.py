@@ -1,3 +1,4 @@
+
 """
 URL configuration for backend project.
 
@@ -31,6 +32,8 @@ from business.api.search import get_user_search_history, vector_query, dialog_qu
     build_kb, change_record_papers
 from business.utils.paper_vdb_init import local_vdb_init, easy_vector_query
 from business.api.summary import generate_summary, create_abstract_report, get_summary_status
+
+from business.api.paper_recommend import get_recommendation
 
 urlpatterns = [
                   path("admin/", admin.site.urls),
@@ -81,11 +84,17 @@ urlpatterns = [
                   # 管理端
                   path("api/manage/users", manage.user_list),
                   path("api/manage/papers", manage.paper_list),
-                  path("api/manage/commentReport", manage.comment_report_list),
+                  path("api/manage/commentReports", manage.comment_report_list),
+                  path("api/manage/commentReportDetail", manage.comment_report_detail),
                   path("api/manage/judgeCmtRpt", manage.judge_comment_report),
-                  path("api/manage/delComment", manage.delete_comment),
+                  # path("api/manage/delComment", manage.delete_comment),
                   path("api/manage/userProfile", manage.user_profile),
                   path("api/manage/userStatistic", manage.user_statistic),
+                  path("api/manage/paperOutline", manage.paper_outline),
+                  path("api/manage/paperStatistic", manage.paper_statistic),
+                  path("api/manage/serverStatus", manage.server_status),
+                  path("api/manage/recordVisit", manage.record_visit),
+                  path("api/manage/visitStatistic", manage.visit_statistic),
 
                   # 信息检索模块
                   path("api/search/easyVectorQuery", easy_vector_query),
@@ -117,4 +126,9 @@ urlpatterns = [
                   path("api/summary/generateSummaryReport", generate_summary),
                   path("api/summary/generateAbstractReport", create_abstract_report),
                   path("api/summary/getSummaryStatus", get_summary_status),
+
+                  # 热门文献推荐
+                  path("api/paperRecommend", get_recommendation),
+                  path("api/refresh", get_recommendation)
               ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+

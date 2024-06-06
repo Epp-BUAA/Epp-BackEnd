@@ -36,7 +36,8 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     'corsheaders',
-    'business'
+    'business',
+    'django_crontab'
 ]
 
 MIDDLEWARE = [
@@ -54,7 +55,7 @@ MIDDLEWARE = [
 SESSION_COOKIE_SECURE = True
 SESSION_COOKIE_SAMESITE = 'None'
 CORS_ALLOW_CREDENTIALS = True
-
+SESSION_COOKIE_HTTPONLY = True
 # 设置iframe跨域
 X_FRAME_OPTIONS = 'SAMEORIGIN'
 
@@ -201,3 +202,7 @@ LOCAL_METADATA_NAME = "paper_metadata.pkl"
 
 WIN_WKHTMLTOPDF_PATH = 'resource/wkhtmltopdf/bin/wkhtmltopdf.exe'  # 安装位置
 LINUX_WKHTMLTOPDF_PATH = '/usr/bin/wkhtmltopdf'  # 安装位置
+
+# CRONJOBS = [
+#     ('0 0 * * *', 'business.api.paper_recommand.refreshRecommendation'),
+# ]

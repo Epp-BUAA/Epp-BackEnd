@@ -21,9 +21,10 @@ def login(request):
         if user:
             print(user.avatar.url)
             request.session['username'] = user.username
+            expired_time = request.session.get_expiry_date()
             return JsonResponse(
-                {'message': "登录成功", 'ULogin_legal': True, 'user_id': user.user_id, 'username': user.username,
-                 'avatar': user.avatar.url})
+                {'message': "登录成功", 'expired_time': expired_time, 'ULogin_legal': True, 'user_id': user.user_id,
+                 'username': user.username, 'avatar': user.avatar.url})
         else:
             return JsonResponse({'error': '用户名或密码错误', 'ULogin_legal': False}, status=400)
     else:
@@ -81,6 +82,8 @@ def userInfo(request):
 def testLogin(request):
     if request.method == 'GET':
         username = request.session.get('username')
+        if not username:
+            return JsonResponse({'error': '未登录'}, status=403)
         return JsonResponse({'username': username})
     else:
         return JsonResponse({'error': '请求方法错误'}, status=400)

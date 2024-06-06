@@ -9,6 +9,7 @@ from vector_database.chatglm_translate import translate_zh2en
 from vector_database.milvus_test import *
 from business.models import Paper
 from django.conf import settings
+
 model_dir = "vector_database/sci_bert"
 
 
@@ -53,6 +54,7 @@ def text_embedding(text, tokenizer, model):
     # print("CLS token embedding:", cls_embedding)
     return cls_embedding
 
+
 def text_embedding_1024_remote(texts):
     if not isinstance(texts, list):
         texts = [texts]
@@ -67,6 +69,7 @@ def text_embedding_1024_remote(texts):
         return embeddings, 200
     else:
         return "Wrong response code!", 400
+
 
 def search_paper_with_query(text, limit=20):
     t, m = get_sci_bert()
