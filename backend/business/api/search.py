@@ -4,21 +4,7 @@
 API格式如下：
 api/serach/...
 '''
-import json, openai
-import os
 import Levenshtein
-from django.db.models import Q
-from django.http import JsonResponse, HttpRequest
-from business.models.search_record import SearchRecord, User
-from django.conf import settings
-import datetime
-import numpy as np
-
-import requests
-from business.utils import reply
-from business.utils.knowledge_base import delete_tmp_kb, build_abs_kb_by_paper_ids
-from business.utils.paper_vdb_init import get_filtered_paper
-from business.utils.download_paper import downloadPaper
 
 
 def insert_search_record_2_kb(search_record_id, tmp_kb_id):
@@ -66,7 +52,6 @@ def queryGLM(msg: str, history=None) -> str:
 
 
 from django.views.decorators.http import require_http_methods
-from business.models.paper import Paper
 
 
 def search_papers_by_keywords(keywords):
@@ -394,7 +379,7 @@ def dialog_query(request):
         3. 把聊天记录存在本地
         4. 返回json对象,存入到数据库，见backend/business/models/search_record.py
     """
-    import sys, os
+    import os
     username = request.session.get('username')
     if username is None:
         username = 'sanyuba'
@@ -544,14 +529,11 @@ from django.db.models import Q
 from django.http import JsonResponse, HttpRequest
 from business.models.search_record import SearchRecord, User
 from django.conf import settings
-import datetime
-import numpy as np
 
 import requests
 from business.utils import reply
 from business.utils.knowledge_base import delete_tmp_kb, build_abs_kb_by_paper_ids
 from business.utils.paper_vdb_init import get_filtered_paper
-from business.utils.download_paper import downloadPaper
 
 
 def insert_search_record_2_kb(search_record_id, tmp_kb_id):
@@ -700,11 +682,13 @@ def search_my_model(query_string):
 
 def do_string_search(search_content):
     search_terms = search_content.split()  # 根据空格分割子串
+    print(search_terms)
     query = Q()
     for term in search_terms:
         query |= Q(title__icontains=term)
     # 执行查询，获取字符串检索的并集结果
     results = Paper.objects.filter(query)
+    print(results)
     # 计算编辑距离并排序
     results_with_distance = []
     for result in results:
@@ -761,6 +745,21 @@ def vector_query(request):
     request_data = json.loads(request.body)
     search_content = request_data.get('search_content')
     search_type = request_data.get('search_type')
+    search_record_id = request_data.get('search_record_id')
+    if search_record_id is None:
+        search_record = SearchRecord(user_id=user, keyword=search_content, conversation_path=None)
+        search_record.save()
+        conversation_path = os.path.join(settings.USER_SEARCH_CONSERVATION_PATH,
+                                         str(search_record.search_record_id) + '.json')
+        if os.path.exists(conversation_path):
+            os.remove(conversation_path)
+        with open(conversation_path, 'w') as f:
+            json.dump({"conversation": []}, f, indent=4)
+        search_record.conversation_path = conversation_path
+        search_record.save()
+    else:
+        search_record = SearchRecord.objects.get(search_record_id=search_record_id)
+        conversation_path = search_record.conversation_path
 
     chat_chat_url = f'http://{settings.REMOTE_MODEL_BASE_PATH}/chat/chat'
     headers = {
@@ -771,6 +770,9 @@ def vector_query(request):
         filtered_papers = do_dialogue_search(search_content, chat_chat_url, headers)
     else:
         filtered_papers = do_string_search(search_content)
+        if len(filtered_papers) == 0:
+            return JsonResponse({"paper_infos": [], 'ai_reply': "",
+                                 'search_record_id': search_record.search_record_id}, status=200)
 
     start_year = min([paper.publication_date.year for paper in filtered_papers])
     end_year = max([paper.publication_date.year for paper in filtered_papers])
@@ -816,23 +818,6 @@ def vector_query(request):
             print(f'ai_reply: {ai_reply}')
     else:
         return reply.fail(msg='检索总结失败，请检查网络并重新尝试')
-
-    # 判断是创建检索/恢复检索
-    search_record_id = request_data.get('search_record_id')
-    if search_record_id is None:
-        search_record = SearchRecord(user_id=user, keyword=search_content, conversation_path=None)
-        search_record.save()
-        conversation_path = os.path.join(settings.USER_SEARCH_CONSERVATION_PATH,
-                                         str(search_record.search_record_id) + '.json')
-        if os.path.exists(conversation_path):
-            os.remove(conversation_path)
-        with open(conversation_path, 'w') as f:
-            json.dump({"conversation": []}, f, indent=4)
-        search_record.conversation_path = conversation_path
-        search_record.save()
-    else:
-        search_record = SearchRecord.objects.get(search_record_id=search_record_id)
-        conversation_path = search_record.conversation_path
 
     update_search_record_2_paper(search_record, filtered_papers)
 
@@ -996,7 +981,7 @@ def dialog_query(request):
         3. 把聊天记录存在本地
         4. 返回json对象,存入到数据库，见backend/business/models/search_record.py
     """
-    import sys, os
+    import os
     username = request.session.get('username')
     if username is None:
         username = 'sanyuba'
