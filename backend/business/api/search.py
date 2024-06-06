@@ -4,6 +4,8 @@
 API格式如下：
 api/serach/...
 '''
+import re
+
 import Levenshtein
 
 
@@ -681,8 +683,10 @@ def search_my_model(query_string):
     return results
 
 def do_string_search(search_content):
-    search_terms = search_content.split()  # 根据空格分割子串
-    print(search_terms)
+    pattern = r'[,\s!?.]+'
+    search_terms = re.split(pattern, search_content)
+    search_terms = [token for token in search_terms if token]
+
     query = Q()
     for term in search_terms:
         query |= Q(title__icontains=term)
@@ -771,7 +775,7 @@ def vector_query(request):
     else:
         filtered_papers = do_string_search(search_content)
         if len(filtered_papers) == 0:
-            return JsonResponse({"paper_infos": [], 'ai_reply': "",
+            return JsonResponse({"paper_infos": [], 'ai_reply': "EPP助手哭哭惹，很遗憾未能检索出相关论文。",
                                  'search_record_id': search_record.search_record_id}, status=200)
 
     start_year = min([paper.publication_date.year for paper in filtered_papers])
